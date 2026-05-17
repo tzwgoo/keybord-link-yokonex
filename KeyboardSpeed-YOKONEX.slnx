@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/KeyboardSpeed.Bluetooth.Windows/KeyboardSpeed.Bluetooth.Windows.csproj" />
+    <Project Path="src/KeyboardSpeed.Core/KeyboardSpeed.Core.csproj" />
+    <Project Path="src/KeyboardSpeed.Desktop/KeyboardSpeed.Desktop.csproj" />
+    <Project Path="src/KeyboardSpeed.Input.Windows/KeyboardSpeed.Input.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/KeyboardSpeed.Tests/KeyboardSpeed.Tests.csproj" />
+  </Folder>
+</Solution>
