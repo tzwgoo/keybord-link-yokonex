@@ -13,6 +13,11 @@ public sealed record AppSettings
     {
         return new AppSettings
         {
+            SpeedRules =
+            [
+                new SpeedRangeRule("low", "低速区", SpeedMetricType.Kpm, 0, 119.99, "soft-pulse", 1500, true, true, false, true),
+                new SpeedRangeRule("mid", "中速区", SpeedMetricType.Kpm, 120, 220, "heartbeat", 1500, true, true, false, true)
+            ],
             Waveforms = BuiltinWaveforms.CreateDefaults().ToList()
         };
     }

@@ -1,6 +1,8 @@
 using System.Windows.Threading;
+using System.IO;
 using KeyboardSpeed.Bluetooth.Windows.Runtime;
 using KeyboardSpeed.Core.Bluetooth;
+using KeyboardSpeed.Core.Configuration;
 using KeyboardSpeed.Core.Rules;
 using KeyboardSpeed.Core.Typing;
 using KeyboardSpeed.Core.Waveforms;
@@ -14,6 +16,7 @@ public sealed class AppBootstrapper : IDisposable
     private readonly IGlobalKeyboardListener _keyboardListener;
     private readonly BleDeviceManager _bleDeviceManager;
     private readonly SpeedRuleCoordinator _speedRuleCoordinator;
+    private readonly SettingsStore _settingsStore;
     private readonly DispatcherTimer _snapshotTimer;
     private readonly List<EmsWaveformDefinition> _waveforms;
     private readonly List<SpeedRangeRule> _speedRules;
@@ -27,7 +30,7 @@ public sealed class AppBootstrapper : IDisposable
             new GlobalKeyboardListener(),
             new BleDeviceManager(),
             new SpeedRuleCoordinator(new SpeedRuleEngine()),
-            BuiltinWaveforms.CreateDefaults().ToList())
+            new SettingsStore(GetSettingsFilePath()))
     {
     }
 
@@ -36,14 +39,20 @@ public sealed class AppBootstrapper : IDisposable
         IGlobalKeyboardListener keyboardListener,
         BleDeviceManager bleDeviceManager,
         SpeedRuleCoordinator speedRuleCoordinator,
-        List<EmsWaveformDefinition> waveforms)
+        SettingsStore settingsStore)
     {
         _typingSpeedCalculator = typingSpeedCalculator ?? throw new ArgumentNullException(nameof(typingSpeedCalculator));
         _keyboardListener = keyboardListener ?? throw new ArgumentNullException(nameof(keyboardListener));
         _bleDeviceManager = bleDeviceManager ?? throw new ArgumentNullException(nameof(bleDeviceManager));
         _speedRuleCoordinator = speedRuleCoordinator ?? throw new ArgumentNullException(nameof(speedRuleCoordinator));
-        _waveforms = waveforms ?? throw new ArgumentNullException(nameof(waveforms));
-        _speedRules = CreateDefaultRules();
+        _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
+        var settings = _settingsStore.LoadAsync().GetAwaiter().GetResult();
+        _waveforms = settings.Waveforms.Count == 0
+            ? BuiltinWaveforms.CreateDefaults().ToList()
+            : settings.Waveforms.ToList();
+        _speedRules = settings.SpeedRules.Count == 0
+            ? AppSettings.CreateDefault().SpeedRules.ToList()
+            : settings.SpeedRules.ToList();
         _keyboardListener.KeystrokeCaptured += HandleKeystrokeCaptured;
         _bleDeviceManager.StatusChanged += HandleBluetoothStatusChanged;
 
@@ -70,6 +79,8 @@ public sealed class AppBootstrapper : IDisposable
     public BluetoothConnectionStatus BluetoothStatus => _bleDeviceManager.CurrentStatus;
 
     public IReadOnlyList<EmsWaveformDefinition> Waveforms => _waveforms;
+
+    public IReadOnlyList<SpeedRangeRule> SpeedRules => _speedRules;
 
     public string CurrentRuleName => _currentRuleName;
 
@@ -156,6 +167,100 @@ public sealed class AppBootstrapper : IDisposable
         await _bleDeviceManager.PlayWaveformAsync(waveform, cancellationToken);
     }
 
+    public async Task AddOrUpdateWaveformAsync(string? existingWaveformId, string name, string script, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        var trimmedName = string.IsNullOrWhiteSpace(name) ? "自定义波形" : name.Trim();
+        var steps = WaveformScriptSerializer.Parse(script);
+        var existing = _waveforms.FirstOrDefault(item => string.Equals(item.Id, existingWaveformId, StringComparison.OrdinalIgnoreCase));
+        if (existing is null)
+        {
+            _waveforms.Add(new EmsWaveformDefinition
+            {
+                Id = $"wave-{Guid.NewGuid():N}"[..13],
+                Name = trimmedName,
+                Steps = steps
+            });
+        }
+        else
+        {
+            var index = _waveforms.IndexOf(existing);
+            _waveforms[index] = existing with
+            {
+                Name = trimmedName,
+                Steps = steps
+            };
+        }
+
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task DeleteWaveformAsync(string waveformId, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        _waveforms.RemoveAll(item => string.Equals(item.Id, waveformId, StringComparison.OrdinalIgnoreCase));
+        if (_waveforms.Count == 0)
+        {
+            _waveforms.AddRange(BuiltinWaveforms.CreateDefaults());
+        }
+
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task AddOrUpdateRuleAsync(
+        string? existingRuleId,
+        string name,
+        double minValue,
+        double maxValue,
+        string waveformId,
+        int cooldownMs,
+        bool enabled,
+        bool stopOnExit,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        var trimmedName = string.IsNullOrWhiteSpace(name) ? "新规则" : name.Trim();
+        var existing = _speedRules.FirstOrDefault(item => string.Equals(item.Id, existingRuleId, StringComparison.OrdinalIgnoreCase));
+        var rule = new SpeedRangeRule(
+            existing?.Id ?? $"rule-{Guid.NewGuid():N}"[..13],
+            trimmedName,
+            SpeedMetricType.Kpm,
+            minValue,
+            maxValue,
+            waveformId,
+            cooldownMs,
+            enabled,
+            true,
+            false,
+            stopOnExit);
+
+        if (existing is null)
+        {
+            _speedRules.Add(rule);
+        }
+        else
+        {
+            var index = _speedRules.IndexOf(existing);
+            _speedRules[index] = rule;
+        }
+
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task DeleteRuleAsync(string ruleId, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        _speedRules.RemoveAll(item => string.Equals(item.Id, ruleId, StringComparison.OrdinalIgnoreCase));
+        if (_speedRules.Count == 0)
+        {
+            _speedRules.AddRange(AppSettings.CreateDefault().SpeedRules);
+        }
+
+        await SaveSettingsAsync(cancellationToken);
+    }
+
     private void HandleKeystrokeCaptured(object? sender, KeystrokeCapturedEventArgs e)
     {
         LastKeystrokeAt = e.Timestamp;
@@ -217,12 +322,18 @@ public sealed class AppBootstrapper : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
-    private static List<SpeedRangeRule> CreateDefaultRules()
+    private async Task SaveSettingsAsync(CancellationToken cancellationToken)
     {
-        return
-        [
-            new SpeedRangeRule("low", "低速区", SpeedMetricType.Kpm, 0, 119.99, "soft-pulse", 1500, true, true, false, true),
-            new SpeedRangeRule("mid", "中速区", SpeedMetricType.Kpm, 120, 220, "heartbeat", 1500, true, true, false, true)
-        ];
+        await _settingsStore.SaveAsync(new AppSettings
+        {
+            SpeedRules = _speedRules.ToList(),
+            Waveforms = _waveforms.ToList()
+        }, cancellationToken);
+    }
+
+    private static string GetSettingsFilePath()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return Path.Combine(appData, "KeyboardSpeed-YOKONEX", "app-settings.json");
     }
 }

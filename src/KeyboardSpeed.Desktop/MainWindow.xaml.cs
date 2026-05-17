@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using KeyboardSpeed.Core.Bluetooth;
+using KeyboardSpeed.Core.Rules;
 using KeyboardSpeed.Core.Typing;
 using KeyboardSpeed.Core.Waveforms;
 using KeyboardSpeed.Desktop.Services;
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
         ApplyBluetoothStatus(_bootstrapper.BluetoothStatus);
         RefreshDeviceList();
         RefreshWaveformList();
+        RefreshRuleList();
         UpdateRuleState();
     }
 
@@ -96,9 +98,21 @@ public partial class MainWindow : Window
         var selectedWaveformId = (WaveformsComboBox.SelectedItem as EmsWaveformDefinition)?.Id;
         var waveforms = _bootstrapper.Waveforms.ToList();
         WaveformsComboBox.ItemsSource = waveforms;
+        RuleWaveformComboBox.ItemsSource = waveforms;
         WaveformsComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == selectedWaveformId)
             ?? waveforms.FirstOrDefault();
         RenderWaveformPreview(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
+        ApplyWaveformEditor(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
+    }
+
+    private void RefreshRuleList()
+    {
+        var selectedRuleId = (RulesComboBox.SelectedItem as SpeedRangeRule)?.Id;
+        var rules = _bootstrapper.SpeedRules.ToList();
+        RulesComboBox.ItemsSource = rules;
+        RulesComboBox.SelectedItem = rules.FirstOrDefault(item => item.Id == selectedRuleId)
+            ?? rules.FirstOrDefault();
+        ApplyRuleEditor(RulesComboBox.SelectedItem as SpeedRangeRule);
     }
 
     private void UpdateRuleState()
@@ -156,7 +170,88 @@ public partial class MainWindow : Window
 
     private void OnWaveformSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        RenderWaveformPreview(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
+        var waveform = WaveformsComboBox.SelectedItem as EmsWaveformDefinition;
+        RenderWaveformPreview(waveform);
+        ApplyWaveformEditor(waveform);
+    }
+
+    private void OnRuleSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        ApplyRuleEditor(RulesComboBox.SelectedItem as SpeedRangeRule);
+    }
+
+    private void OnNewWaveformClicked(object sender, RoutedEventArgs e)
+    {
+        WaveformsComboBox.SelectedItem = null;
+        ApplyWaveformEditor(null);
+    }
+
+    private async void OnSaveWaveformClicked(object sender, RoutedEventArgs e)
+    {
+        var existingId = (WaveformsComboBox.SelectedItem as EmsWaveformDefinition)?.Id;
+        await ExecuteBusyActionAsync(() => _bootstrapper.AddOrUpdateWaveformAsync(existingId, WaveformNameTextBox.Text, WaveformScriptTextBox.Text));
+        RefreshWaveformList();
+        RefreshRuleList();
+    }
+
+    private async void OnDeleteWaveformClicked(object sender, RoutedEventArgs e)
+    {
+        if (WaveformsComboBox.SelectedItem is not EmsWaveformDefinition waveform)
+        {
+            ErrorText.Text = "最近错误: 请先选择要删除的波形。";
+            return;
+        }
+
+        await ExecuteBusyActionAsync(() => _bootstrapper.DeleteWaveformAsync(waveform.Id));
+        RefreshWaveformList();
+        RefreshRuleList();
+    }
+
+    private void OnNewRuleClicked(object sender, RoutedEventArgs e)
+    {
+        RulesComboBox.SelectedItem = null;
+        ApplyRuleEditor(null);
+    }
+
+    private async void OnSaveRuleClicked(object sender, RoutedEventArgs e)
+    {
+        if (RuleWaveformComboBox.SelectedItem is not EmsWaveformDefinition waveform)
+        {
+            ErrorText.Text = "最近错误: 请先为规则选择一个波形。";
+            return;
+        }
+
+        if (!double.TryParse(RuleMinTextBox.Text, out var minValue) ||
+            !double.TryParse(RuleMaxTextBox.Text, out var maxValue) ||
+            !int.TryParse(RuleCooldownTextBox.Text, out var cooldownMs))
+        {
+            ErrorText.Text = "最近错误: 规则区间或冷却时间格式不正确。";
+            return;
+        }
+
+        var existingId = (RulesComboBox.SelectedItem as SpeedRangeRule)?.Id;
+        await ExecuteBusyActionAsync(() => _bootstrapper.AddOrUpdateRuleAsync(
+            existingId,
+            RuleNameTextBox.Text,
+            minValue,
+            maxValue,
+            waveform.Id,
+            cooldownMs,
+            RuleEnabledCheckBox.IsChecked == true,
+            RuleStopOnExitCheckBox.IsChecked == true));
+        RefreshRuleList();
+    }
+
+    private async void OnDeleteRuleClicked(object sender, RoutedEventArgs e)
+    {
+        if (RulesComboBox.SelectedItem is not SpeedRangeRule rule)
+        {
+            ErrorText.Text = "最近错误: 请先选择要删除的规则。";
+            return;
+        }
+
+        await ExecuteBusyActionAsync(() => _bootstrapper.DeleteRuleAsync(rule.Id));
+        RefreshRuleList();
     }
 
     private async Task ExecuteBusyActionAsync(Func<Task> action)
@@ -232,6 +327,30 @@ public partial class MainWindow : Window
 
         WaveformPreviewCanvas.Children.Add(aLine);
         WaveformPreviewCanvas.Children.Add(bLine);
+    }
+
+    private void ApplyWaveformEditor(EmsWaveformDefinition? waveform)
+    {
+        WaveformNameTextBox.Text = waveform?.Name ?? "新波形";
+        WaveformScriptTextBox.Text = waveform is null
+            ? "120,10,1,10,1,0"
+            : WaveformScriptSerializer.Serialize(waveform.Steps);
+    }
+
+    private void ApplyRuleEditor(SpeedRangeRule? rule)
+    {
+        RuleNameTextBox.Text = rule?.Name ?? "新规则";
+        RuleMinTextBox.Text = rule?.MinValue.ToString("0.##") ?? "0";
+        RuleMaxTextBox.Text = rule?.MaxValue.ToString("0.##") ?? "120";
+        RuleCooldownTextBox.Text = rule?.CooldownMs.ToString() ?? "1500";
+        RuleEnabledCheckBox.IsChecked = rule?.Enabled ?? true;
+        RuleStopOnExitCheckBox.IsChecked = rule?.StopOnExit ?? true;
+
+        if (RuleWaveformComboBox.ItemsSource is IEnumerable<EmsWaveformDefinition> waveforms)
+        {
+            RuleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == rule?.WaveformId)
+                ?? waveforms.FirstOrDefault();
+        }
     }
 
     private sealed record DeviceOption(string DeviceId, string Summary);
