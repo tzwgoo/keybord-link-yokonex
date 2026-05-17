@@ -78,6 +78,10 @@ public sealed class AppBootstrapper : IDisposable
 
     public BluetoothConnectionStatus BluetoothStatus => _bleDeviceManager.CurrentStatus;
 
+    public BluetoothTelemetrySnapshot BluetoothTelemetry => _bleDeviceManager.GetTelemetrySnapshot();
+
+    public int PacketHistoryCount => _bleDeviceManager.PacketHistory.Count;
+
     public IReadOnlyList<EmsWaveformDefinition> Waveforms => _waveforms;
 
     public IReadOnlyList<SpeedRangeRule> SpeedRules => _speedRules;
@@ -85,6 +89,8 @@ public sealed class AppBootstrapper : IDisposable
     public string CurrentRuleName => _currentRuleName;
 
     public string CurrentWaveformName => _currentWaveformName;
+
+    public string SettingsFilePath => GetSettingsFilePath();
 
     public void Start()
     {

@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     {
         _bootstrapper = bootstrapper ?? throw new ArgumentNullException(nameof(bootstrapper));
         InitializeComponent();
+        WaveformPreviewCanvas.SizeChanged += (_, _) => RenderWaveformPreview(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -26,12 +27,13 @@ public partial class MainWindow : Window
     {
         _bootstrapper.SnapshotUpdated += HandleSnapshotUpdated;
         _bootstrapper.BluetoothStatusUpdated += HandleBluetoothStatusUpdated;
+        ApplyListeningState();
         ApplySnapshot(_bootstrapper.CurrentSnapshot);
-        StatusText.Text = _bootstrapper.IsListening ? "监听中" : "未监听";
         ApplyBluetoothStatus(_bootstrapper.BluetoothStatus);
         RefreshDeviceList();
         RefreshWaveformList();
         RefreshRuleList();
+        RefreshOverviewPanels();
         UpdateRuleState();
     }
 
@@ -52,6 +54,7 @@ public partial class MainWindow : Window
         {
             ApplyBluetoothStatus(status);
             RefreshDeviceList();
+            RefreshOverviewPanels();
         });
     }
 
@@ -62,14 +65,20 @@ public partial class MainWindow : Window
         SamplesText.Text = snapshot.ActiveSampleCount.ToString();
         TrendText.Text = snapshot.TrendKpm.ToString("0.0");
         LastKeyText.Text = _bootstrapper.LastKeystrokeAt?.ToLocalTime().ToString("HH:mm:ss") ?? "--:--:--";
+        ApplyListeningState();
+        RefreshOverviewPanels();
         UpdateRuleState();
     }
 
     private void ApplyBluetoothStatus(BluetoothConnectionStatus status)
     {
+        var connectedDeviceName = status.Device?.Name ?? "未知设备";
         DeviceStatusText.Text = status.IsConnected
-            ? $"已连接: {status.Device?.Name ?? "未知设备"}"
-            : "未连接";
+            ? $"已连接设备: {connectedDeviceName}"
+            : "未连接设备";
+        HeaderDeviceBadge.Text = status.IsConnected
+            ? $"{connectedDeviceName} 已连接"
+            : "设备未连接";
         BatteryText.Text = $"电量: {(status.BatteryLevel.HasValue ? $"{status.BatteryLevel.Value}%" : "--")}";
         ErrorText.Text = $"最近错误: {(string.IsNullOrWhiteSpace(status.LastError) ? "无" : status.LastError)}";
         ConnectButton.IsEnabled = !_isBusy;
@@ -77,6 +86,7 @@ public partial class MainWindow : Window
         StopButton.IsEnabled = !_isBusy && status.IsConnected;
         RefreshButton.IsEnabled = !_isBusy;
         ScanButton.IsEnabled = !_isBusy;
+        RefreshOverviewPanels();
     }
 
     private void RefreshDeviceList()
@@ -103,6 +113,7 @@ public partial class MainWindow : Window
             ?? waveforms.FirstOrDefault();
         RenderWaveformPreview(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
         ApplyWaveformEditor(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
+        RefreshOverviewPanels();
     }
 
     private void RefreshRuleList()
@@ -113,12 +124,32 @@ public partial class MainWindow : Window
         RulesComboBox.SelectedItem = rules.FirstOrDefault(item => item.Id == selectedRuleId)
             ?? rules.FirstOrDefault();
         ApplyRuleEditor(RulesComboBox.SelectedItem as SpeedRangeRule);
+        RefreshOverviewPanels();
     }
 
     private void UpdateRuleState()
     {
         RuleText.Text = $"命中规则: {_bootstrapper.CurrentRuleName}";
         WaveformText.Text = $"当前波形: {_bootstrapper.CurrentWaveformName}";
+    }
+
+    private void ApplyListeningState()
+    {
+        var isListening = _bootstrapper.IsListening;
+        StatusText.Text = isListening ? "监听中" : "未监听";
+        StatusText.Foreground = CreateBrush(isListening ? "#4ADE80" : "#FBBF24");
+        HeaderListeningBadge.Text = isListening ? "监听中" : "监听已停止";
+        HeaderListeningBadge.Foreground = CreateBrush(isListening ? "#D1FAE5" : "#FEF3C7");
+    }
+
+    private void RefreshOverviewPanels()
+    {
+        DevicesCountText.Text = _bootstrapper.AvailableDevices.Count.ToString();
+        PacketCountText.Text = _bootstrapper.PacketHistoryCount.ToString();
+        WaveformsCountText.Text = _bootstrapper.Waveforms.Count.ToString();
+        RulesCountText.Text = _bootstrapper.SpeedRules.Count.ToString();
+        TelemetryText.Text = $"遥测样本: {_bootstrapper.BluetoothTelemetry.Samples.Count}";
+        ConfigPathText.Text = $"配置文件: {_bootstrapper.SettingsFilePath}";
     }
 
     private async void OnScanClicked(object sender, RoutedEventArgs e)
@@ -288,34 +319,33 @@ public partial class MainWindow : Window
         WaveformPreviewCanvas.Children.Clear();
         if (waveform is null)
         {
+            AddWaveformPlaceholder("请选择一个波形来查看预览");
             return;
         }
 
         var preview = WaveformPreviewBuilder.Build(waveform);
         if (preview.Points.Count == 0 || preview.TotalDurationMs <= 0)
         {
+            AddWaveformPlaceholder("当前波形没有可绘制的数据点");
             return;
         }
 
+        var width = Math.Max(1d, WaveformPreviewCanvas.ActualWidth > 0 ? WaveformPreviewCanvas.ActualWidth : 520d);
+        var height = WaveformPreviewCanvas.Height;
+        DrawWaveformGuides(width, height);
+
         var aLine = new Polyline
         {
-            Stroke = Brushes.Cyan,
+            Stroke = CreateBrush("#4FD1C5"),
             StrokeThickness = 2
         };
         var bLine = new Polyline
         {
-            Stroke = Brushes.Orange,
+            Stroke = CreateBrush("#F59E0B"),
             StrokeThickness = 2
         };
 
         const double padding = 8d;
-        var width = Math.Max(1d, WaveformPreviewCanvas.ActualWidth > 0 ? WaveformPreviewCanvas.ActualWidth : WaveformPreviewCanvas.Width);
-        if (width <= 0)
-        {
-            width = 280d;
-        }
-
-        var height = WaveformPreviewCanvas.Height;
         foreach (var point in preview.Points)
         {
             var x = padding + (width - padding * 2) * point.TimeMs / preview.TotalDurationMs;
@@ -327,6 +357,22 @@ public partial class MainWindow : Window
 
         WaveformPreviewCanvas.Children.Add(aLine);
         WaveformPreviewCanvas.Children.Add(bLine);
+
+        WaveformPreviewCanvas.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "A 通道",
+            Foreground = CreateBrush("#4FD1C5"),
+            FontSize = 11
+        });
+
+        var bLabel = new System.Windows.Controls.TextBlock
+        {
+            Text = "B 通道",
+            Foreground = CreateBrush("#F59E0B"),
+            FontSize = 11
+        };
+        System.Windows.Controls.Canvas.SetLeft(bLabel, Math.Max(80d, width - 56d));
+        WaveformPreviewCanvas.Children.Add(bLabel);
     }
 
     private void ApplyWaveformEditor(EmsWaveformDefinition? waveform)
@@ -351,6 +397,39 @@ public partial class MainWindow : Window
             RuleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == rule?.WaveformId)
                 ?? waveforms.FirstOrDefault();
         }
+    }
+
+    private void DrawWaveformGuides(double width, double height)
+    {
+        const double padding = 8d;
+        for (var index = 0; index < 4; index++)
+        {
+            var y = padding + (height - padding * 2) * index / 3d;
+            WaveformPreviewCanvas.Children.Add(new Line
+            {
+                X1 = padding,
+                X2 = width - padding,
+                Y1 = y,
+                Y2 = y,
+                Stroke = CreateBrush("#1E2D48"),
+                StrokeThickness = 1
+            });
+        }
+    }
+
+    private void AddWaveformPlaceholder(string message)
+    {
+        WaveformPreviewCanvas.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = message,
+            Foreground = CreateBrush("#8FA4C6"),
+            FontSize = 12
+        });
+    }
+
+    private static Brush CreateBrush(string hexColor)
+    {
+        return (SolidColorBrush)new BrushConverter().ConvertFrom(hexColor)!;
     }
 
     private sealed record DeviceOption(string DeviceId, string Summary);
