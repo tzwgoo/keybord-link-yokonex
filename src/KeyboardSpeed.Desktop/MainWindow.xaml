@@ -1,12 +1,219 @@
-﻿<Window x:Class="KeyboardSpeed.Desktop.MainWindow"
+<Window x:Class="KeyboardSpeed.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:KeyboardSpeed.Desktop"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Keyboard Speed YOKONEX"
+        Height="520"
+        Width="880"
+        MinHeight="480"
+        MinWidth="760"
+        WindowStartupLocation="CenterScreen"
+        Background="#0B1020">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="24" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
+        <StackPanel>
+            <TextBlock
+                FontSize="28"
+                FontWeight="SemiBold"
+                Foreground="#F8FAFC"
+                Text="全局键盘测速监控" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="14"
+                Foreground="#94A3B8"
+                Text="当前版本已接入系统全局键盘监听，切到其他应用输入时也会持续统计打字速度。" />
+        </StackPanel>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                Grid.Column="0"
+                Padding="24"
+                Background="#111827"
+                BorderBrush="#1F2937"
+                BorderThickness="1"
+                CornerRadius="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="24" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="24" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Foreground="#E2E8F0"
+                        Text="实时速度" />
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Margin="0,0,12,0"
+                            Padding="20"
+                            Background="#0F172A"
+                            BorderBrush="#1E293B"
+                            BorderThickness="1"
+                            CornerRadius="18">
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="13"
+                                    Foreground="#94A3B8"
+                                    Text="KPM" />
+                                <TextBlock
+                                    x:Name="KpmText"
+                                    Margin="0,8,0,0"
+                                    FontSize="44"
+                                    FontWeight="Bold"
+                                    Foreground="#F8FAFC"
+                                    Text="0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border
+                            Grid.Column="1"
+                            Margin="12,0,0,0"
+                            Padding="20"
+                            Background="#0F172A"
+                            BorderBrush="#1E293B"
+                            BorderThickness="1"
+                            CornerRadius="18">
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="13"
+                                    Foreground="#94A3B8"
+                                    Text="WPM" />
+                                <TextBlock
+                                    x:Name="WpmText"
+                                    Margin="0,8,0,0"
+                                    FontSize="44"
+                                    FontWeight="Bold"
+                                    Foreground="#F8FAFC"
+                                    Text="0" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border
+                        Grid.Row="4"
+                        Padding="20"
+                        Background="#0F172A"
+                        BorderBrush="#1E293B"
+                        BorderThickness="1"
+                        CornerRadius="18">
+                        <UniformGrid Columns="3">
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="12"
+                                    Foreground="#94A3B8"
+                                    Text="10 秒窗口样本" />
+                                <TextBlock
+                                    x:Name="SamplesText"
+                                    Margin="0,8,0,0"
+                                    FontSize="22"
+                                    FontWeight="SemiBold"
+                                    Foreground="#E2E8F0"
+                                    Text="0" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="12"
+                                    Foreground="#94A3B8"
+                                    Text="30 秒趋势 KPM" />
+                                <TextBlock
+                                    x:Name="TrendText"
+                                    Margin="0,8,0,0"
+                                    FontSize="22"
+                                    FontWeight="SemiBold"
+                                    Foreground="#E2E8F0"
+                                    Text="0" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="12"
+                                    Foreground="#94A3B8"
+                                    Text="最近按键时间" />
+                                <TextBlock
+                                    x:Name="LastKeyText"
+                                    Margin="0,8,0,0"
+                                    FontSize="22"
+                                    FontWeight="SemiBold"
+                                    Foreground="#E2E8F0"
+                                    Text="--:--:--" />
+                            </StackPanel>
+                        </UniformGrid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border
+                Grid.Column="2"
+                Padding="24"
+                Background="#111827"
+                BorderBrush="#1F2937"
+                BorderThickness="1"
+                CornerRadius="20">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Foreground="#E2E8F0"
+                        Text="监听状态" />
+                    <Border
+                        Margin="0,20,0,0"
+                        Padding="16"
+                        Background="#0F172A"
+                        BorderBrush="#1E293B"
+                        BorderThickness="1"
+                        CornerRadius="16">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="#94A3B8"
+                                Text="状态摘要" />
+                            <TextBlock
+                                x:Name="StatusText"
+                                Margin="0,8,0,0"
+                                FontSize="18"
+                                FontWeight="SemiBold"
+                                Foreground="#22C55E"
+                                Text="监听中" />
+                        </StackPanel>
+                    </Border>
+                    <Border
+                        Margin="0,16,0,0"
+                        Padding="16"
+                        Background="#0F172A"
+                        BorderBrush="#1E293B"
+                        BorderThickness="1"
+                        CornerRadius="16">
+                        <TextBlock
+                            TextWrapping="Wrap"
+                            FontSize="13"
+                            LineHeight="22"
+                            Foreground="#CBD5E1"
+                            Text="当前阶段先完成最小闭环：全局键盘监听、实时速度刷新，以及面向后续 BLE 触发流程的运行时编排。下一步会把蓝牙接入、设备控制和波形触发接进来。" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

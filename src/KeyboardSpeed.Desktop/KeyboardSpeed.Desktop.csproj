@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KeyboardSpeed.Core\KeyboardSpeed.Core.csproj" />
+    <ProjectReference Include="..\KeyboardSpeed.Input.Windows\KeyboardSpeed.Input.Windows.csproj" />
+    <ProjectReference Include="..\KeyboardSpeed.Bluetooth.Windows\KeyboardSpeed.Bluetooth.Windows.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
