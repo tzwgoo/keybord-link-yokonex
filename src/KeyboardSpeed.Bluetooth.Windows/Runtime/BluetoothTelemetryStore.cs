@@ -24,10 +24,10 @@ public sealed class BluetoothTelemetryStore
         _samples.Add(new BluetoothTelemetrySample(
             now,
             status.BatteryLevel,
-            null,
-            null,
-            null,
-            null));
+            status.ChannelAStrength,
+            status.ChannelBStrength,
+            status.ChannelAEnabled,
+            status.ChannelBEnabled));
 
         Trim(now);
     }

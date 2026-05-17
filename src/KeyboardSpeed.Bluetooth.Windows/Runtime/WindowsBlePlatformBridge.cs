@@ -101,7 +101,7 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
 
         if (_currentStatus.Device.DeviceType == BluetoothDeviceType.Ems)
         {
-            foreach (var queryType in new byte[] { 0x04 })
+            foreach (var queryType in new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05 })
             {
                 await WriteAsync(BuildEmsQueryPacket(queryType), cancellationToken);
                 await Task.Delay(40, cancellationToken);
@@ -378,6 +378,17 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
             _currentStatus = _currentStatus with
             {
                 BatteryLevel = parsedStatus.BatteryLevel ?? _currentStatus.BatteryLevel,
+                ChannelAElectrodeStatus = parsedStatus.ChannelAElectrodeStatus ?? _currentStatus.ChannelAElectrodeStatus,
+                ChannelAEnabled = parsedStatus.ChannelAEnabled ?? _currentStatus.ChannelAEnabled,
+                ChannelAStrength = parsedStatus.ChannelAStrength ?? _currentStatus.ChannelAStrength,
+                ChannelAMode = parsedStatus.ChannelAMode ?? _currentStatus.ChannelAMode,
+                ChannelBElectrodeStatus = parsedStatus.ChannelBElectrodeStatus ?? _currentStatus.ChannelBElectrodeStatus,
+                ChannelBEnabled = parsedStatus.ChannelBEnabled ?? _currentStatus.ChannelBEnabled,
+                ChannelBStrength = parsedStatus.ChannelBStrength ?? _currentStatus.ChannelBStrength,
+                ChannelBMode = parsedStatus.ChannelBMode ?? _currentStatus.ChannelBMode,
+                MotorState = parsedStatus.MotorState ?? _currentStatus.MotorState,
+                StepCount = parsedStatus.StepCount ?? _currentStatus.StepCount,
+                ErrorCode = parsedStatus.ErrorCode ?? _currentStatus.ErrorCode,
                 LastError = string.Empty
             };
         }

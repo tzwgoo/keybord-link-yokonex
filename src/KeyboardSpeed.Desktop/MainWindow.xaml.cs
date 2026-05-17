@@ -18,7 +18,7 @@ public partial class MainWindow : Window
     {
         _bootstrapper = bootstrapper ?? throw new ArgumentNullException(nameof(bootstrapper));
         InitializeComponent();
-        WaveformPreviewCanvas.SizeChanged += (_, _) => RenderWaveformPreview(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
+        WaveformPreviewCanvas.SizeChanged += (_, _) => RenderWaveformPreviewFromEditor();
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -31,7 +31,9 @@ public partial class MainWindow : Window
         ApplySnapshot(_bootstrapper.CurrentSnapshot);
         ApplyBluetoothStatus(_bootstrapper.BluetoothStatus);
         RefreshDeviceList();
+        RefreshWaveformTemplateList();
         RefreshWaveformList();
+        RefreshRulePresetList();
         RefreshRuleList();
         RefreshOverviewPanels();
         UpdateRuleState();
@@ -111,7 +113,6 @@ public partial class MainWindow : Window
         RuleWaveformComboBox.ItemsSource = waveforms;
         WaveformsComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == selectedWaveformId)
             ?? waveforms.FirstOrDefault();
-        RenderWaveformPreview(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
         ApplyWaveformEditor(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
         RefreshOverviewPanels();
     }
@@ -125,6 +126,22 @@ public partial class MainWindow : Window
             ?? rules.FirstOrDefault();
         ApplyRuleEditor(RulesComboBox.SelectedItem as SpeedRangeRule);
         RefreshOverviewPanels();
+    }
+
+    private void RefreshWaveformTemplateList()
+    {
+        var templates = BuiltinWaveformTemplates.CreateDefaults().ToList();
+        WaveformTemplateComboBox.ItemsSource = templates;
+        WaveformTemplateComboBox.SelectedItem = templates.FirstOrDefault();
+        ApplyWaveformTemplateDescription(WaveformTemplateComboBox.SelectedItem as WaveformScriptTemplate);
+    }
+
+    private void RefreshRulePresetList()
+    {
+        var presets = BuiltinSpeedRulePresets.CreateDefaults().ToList();
+        RulePresetComboBox.ItemsSource = presets;
+        RulePresetComboBox.SelectedItem = presets.FirstOrDefault();
+        ApplyRulePresetDescription(RulePresetComboBox.SelectedItem as SpeedRulePreset);
     }
 
     private void UpdateRuleState()
@@ -144,12 +161,29 @@ public partial class MainWindow : Window
 
     private void RefreshOverviewPanels()
     {
+        var latestTelemetry = _bootstrapper.BluetoothTelemetry.Samples.LastOrDefault();
         DevicesCountText.Text = _bootstrapper.AvailableDevices.Count.ToString();
         PacketCountText.Text = _bootstrapper.PacketHistoryCount.ToString();
         WaveformsCountText.Text = _bootstrapper.Waveforms.Count.ToString();
         RulesCountText.Text = _bootstrapper.SpeedRules.Count.ToString();
-        TelemetryText.Text = $"遥测样本: {_bootstrapper.BluetoothTelemetry.Samples.Count}";
+        TelemetryText.Text = latestTelemetry is null
+            ? $"遥测样本: {_bootstrapper.BluetoothTelemetry.Samples.Count}"
+            : $"遥测样本: {_bootstrapper.BluetoothTelemetry.Samples.Count} | 最近更新 {latestTelemetry.TimestampUtc.ToLocalTime():HH:mm:ss}";
         ConfigPathText.Text = $"配置文件: {_bootstrapper.SettingsFilePath}";
+        RefreshTelemetryDetails();
+    }
+
+    private void RefreshTelemetryDetails()
+    {
+        var status = _bootstrapper.BluetoothStatus;
+        ChannelAStatusText.Text = $"A 通道: {BuildChannelStatusText(status.ChannelAEnabled, status.ChannelAStrength, status.ChannelAMode, status.ChannelAElectrodeStatus)}";
+        ChannelBStatusText.Text = $"B 通道: {BuildChannelStatusText(status.ChannelBEnabled, status.ChannelBStrength, status.ChannelBMode, status.ChannelBElectrodeStatus)}";
+        MotorStatusText.Text = $"电机状态: {(status.MotorState.HasValue ? status.MotorState.Value.ToString() : "--")}";
+        StepCountStatusText.Text = $"设备步数: {(status.StepCount.HasValue ? status.StepCount.Value.ToString() : "--")}";
+        DeviceTelemetryStatusText.Text =
+            $"A: {BuildChannelStatusText(status.ChannelAEnabled, status.ChannelAStrength, status.ChannelAMode, status.ChannelAElectrodeStatus)}\n" +
+            $"B: {BuildChannelStatusText(status.ChannelBEnabled, status.ChannelBStrength, status.ChannelBMode, status.ChannelBElectrodeStatus)}\n" +
+            $"电机: {(status.MotorState.HasValue ? status.MotorState.Value.ToString() : "--")} | 步数: {(status.StepCount.HasValue ? status.StepCount.Value.ToString() : "--")} | 错误码: {(status.ErrorCode.HasValue ? status.ErrorCode.Value.ToString() : "--")}";
     }
 
     private async void OnScanClicked(object sender, RoutedEventArgs e)
@@ -202,8 +236,12 @@ public partial class MainWindow : Window
     private void OnWaveformSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         var waveform = WaveformsComboBox.SelectedItem as EmsWaveformDefinition;
-        RenderWaveformPreview(waveform);
         ApplyWaveformEditor(waveform);
+    }
+
+    private void OnWaveformTemplateSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        ApplyWaveformTemplateDescription(WaveformTemplateComboBox.SelectedItem as WaveformScriptTemplate);
     }
 
     private void OnRuleSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -211,10 +249,27 @@ public partial class MainWindow : Window
         ApplyRuleEditor(RulesComboBox.SelectedItem as SpeedRangeRule);
     }
 
+    private void OnRulePresetSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        ApplyRulePresetDescription(RulePresetComboBox.SelectedItem as SpeedRulePreset);
+    }
+
     private void OnNewWaveformClicked(object sender, RoutedEventArgs e)
     {
         WaveformsComboBox.SelectedItem = null;
         ApplyWaveformEditor(null);
+    }
+
+    private void OnApplyWaveformTemplateClicked(object sender, RoutedEventArgs e)
+    {
+        if (WaveformTemplateComboBox.SelectedItem is not WaveformScriptTemplate template)
+        {
+            return;
+        }
+
+        WaveformNameTextBox.Text = template.SuggestedWaveformName;
+        WaveformScriptTextBox.Text = template.Script;
+        RenderWaveformPreviewFromEditor();
     }
 
     private async void OnSaveWaveformClicked(object sender, RoutedEventArgs e)
@@ -238,10 +293,36 @@ public partial class MainWindow : Window
         RefreshRuleList();
     }
 
+    private void OnWaveformScriptTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        RenderWaveformPreviewFromEditor();
+    }
+
     private void OnNewRuleClicked(object sender, RoutedEventArgs e)
     {
         RulesComboBox.SelectedItem = null;
         ApplyRuleEditor(null);
+    }
+
+    private void OnApplyRulePresetClicked(object sender, RoutedEventArgs e)
+    {
+        if (RulePresetComboBox.SelectedItem is not SpeedRulePreset preset)
+        {
+            return;
+        }
+
+        RuleNameTextBox.Text = preset.Name;
+        RuleMinTextBox.Text = preset.MinValue.ToString("0.##");
+        RuleMaxTextBox.Text = preset.MaxValue.ToString("0.##");
+        RuleCooldownTextBox.Text = preset.CooldownMs.ToString();
+        RuleEnabledCheckBox.IsChecked = preset.Enabled;
+        RuleStopOnExitCheckBox.IsChecked = preset.StopOnExit;
+
+        if (RuleWaveformComboBox.ItemsSource is IEnumerable<EmsWaveformDefinition> waveforms)
+        {
+            RuleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => string.Equals(item.Id, preset.WaveformId, StringComparison.OrdinalIgnoreCase))
+                ?? waveforms.FirstOrDefault();
+        }
     }
 
     private async void OnSaveRuleClicked(object sender, RoutedEventArgs e)
@@ -375,12 +456,32 @@ public partial class MainWindow : Window
         WaveformPreviewCanvas.Children.Add(bLabel);
     }
 
+    private void RenderWaveformPreviewFromEditor()
+    {
+        try
+        {
+            var steps = WaveformScriptSerializer.Parse(WaveformScriptTextBox.Text);
+            RenderWaveformPreview(new EmsWaveformDefinition
+            {
+                Id = "preview",
+                Name = WaveformNameTextBox.Text,
+                Steps = steps
+            });
+        }
+        catch (FormatException)
+        {
+            WaveformPreviewCanvas.Children.Clear();
+            AddWaveformPlaceholder("脚本格式无效，无法生成预览");
+        }
+    }
+
     private void ApplyWaveformEditor(EmsWaveformDefinition? waveform)
     {
         WaveformNameTextBox.Text = waveform?.Name ?? "新波形";
         WaveformScriptTextBox.Text = waveform is null
             ? "120,10,1,10,1,0"
             : WaveformScriptSerializer.Serialize(waveform.Steps);
+        RenderWaveformPreviewFromEditor();
     }
 
     private void ApplyRuleEditor(SpeedRangeRule? rule)
@@ -397,6 +498,16 @@ public partial class MainWindow : Window
             RuleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == rule?.WaveformId)
                 ?? waveforms.FirstOrDefault();
         }
+    }
+
+    private void ApplyWaveformTemplateDescription(WaveformScriptTemplate? template)
+    {
+        WaveformTemplateDescriptionText.Text = template?.Description ?? "模板会自动填入推荐波形名和脚本。";
+    }
+
+    private void ApplyRulePresetDescription(SpeedRulePreset? preset)
+    {
+        RulePresetDescriptionText.Text = preset?.Description ?? "预设会填充推荐速度区间、冷却时间和目标波形。";
     }
 
     private void DrawWaveformGuides(double width, double height)
@@ -430,6 +541,18 @@ public partial class MainWindow : Window
     private static Brush CreateBrush(string hexColor)
     {
         return (SolidColorBrush)new BrushConverter().ConvertFrom(hexColor)!;
+    }
+
+    private static string BuildChannelStatusText(bool? enabled, int? strength, int? mode, int? electrodeStatus)
+    {
+        var enabledText = enabled switch
+        {
+            true => "启用",
+            false => "关闭",
+            null => "未知"
+        };
+
+        return $"{enabledText} | 强度 {(strength.HasValue ? strength.Value.ToString() : "--")} | 模式 {(mode.HasValue ? mode.Value.ToString() : "--")} | 贴片 {(electrodeStatus.HasValue ? electrodeStatus.Value.ToString() : "--")}";
     }
 
     private sealed record DeviceOption(string DeviceId, string Summary);
