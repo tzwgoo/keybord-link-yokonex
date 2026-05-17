@@ -48,6 +48,29 @@ public sealed class BleDeviceManagerTests
         Assert.Equal([0x35, 0x11, 0x01], manager.PacketHistory[0]);
     }
 
+    [Fact]
+    public async Task ConnectAsync_ShouldRemainSuccessfulWhenStatusSubscriberThrows()
+    {
+        var device = new BluetoothDeviceDescriptor
+        {
+            DeviceId = "dev-1",
+            Name = "YYC-DJ-V2-001",
+            DeviceType = BluetoothDeviceType.Ems,
+            ProtocolProfile = BluetoothProtocolProfile.EmsV2,
+            ServiceUuid = BluetoothAdvertisementDeviceClassifier.EmsServiceUuid
+        };
+
+        var bridge = new FakeWindowsBlePlatformBridge([device]);
+        var manager = new BleDeviceManager(bridge);
+        manager.StatusChanged += _ => throw new InvalidOperationException("UI handler failed");
+
+        await manager.ScanAsync(CancellationToken.None);
+        var connected = await manager.ConnectAsync(device.DeviceId, CancellationToken.None);
+
+        Assert.True(connected);
+        Assert.True(manager.CurrentStatus.IsConnected);
+    }
+
     private sealed class FakeWindowsBlePlatformBridge : IWindowsBlePlatformBridge
     {
         private readonly IReadOnlyList<BluetoothDeviceDescriptor> _devices;

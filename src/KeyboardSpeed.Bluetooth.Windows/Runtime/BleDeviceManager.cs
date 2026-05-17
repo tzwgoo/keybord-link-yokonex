@@ -1,5 +1,6 @@
 using KeyboardSpeed.Bluetooth.Windows.Protocol;
 using KeyboardSpeed.Core.Bluetooth;
+using KeyboardSpeed.Core.Diagnostics;
 using KeyboardSpeed.Core.Waveforms;
 
 namespace KeyboardSpeed.Bluetooth.Windows.Runtime;
@@ -151,15 +152,37 @@ public sealed class BleDeviceManager : IBluetoothDeviceManager
     {
         _status = status;
         _telemetryStore.RecordStatus(_status);
-        StatusChanged?.Invoke(_status);
+        if (StatusChanged is null)
+        {
+            return;
+        }
+
+        foreach (var handler in StatusChanged.GetInvocationList().Cast<Action<BluetoothConnectionStatus>>())
+        {
+            try
+            {
+                handler(_status);
+            }
+            catch (Exception ex)
+            {
+                AppDiagnostics.WriteException("BleDeviceManager.StatusChanged", ex);
+            }
+        }
     }
 
     private void HandlePlatformStatusUpdated(BluetoothConnectionStatus status)
     {
-        UpdateStatus(status with
+        try
         {
-            Device = status.Device ?? _status.Device
-        });
+            UpdateStatus(status with
+            {
+                Device = status.Device ?? _status.Device
+            });
+        }
+        catch (Exception ex)
+        {
+            AppDiagnostics.WriteException("BleDeviceManager.HandlePlatformStatusUpdated", ex);
+        }
     }
 
     private static IWindowsBlePlatformBridge CreateDefaultPlatformBridge()

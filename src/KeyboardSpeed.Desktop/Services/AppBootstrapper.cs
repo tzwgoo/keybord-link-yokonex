@@ -3,6 +3,7 @@ using System.IO;
 using KeyboardSpeed.Bluetooth.Windows.Runtime;
 using KeyboardSpeed.Core.Bluetooth;
 using KeyboardSpeed.Core.Configuration;
+using KeyboardSpeed.Core.Diagnostics;
 using KeyboardSpeed.Core.Rules;
 using KeyboardSpeed.Core.Typing;
 using KeyboardSpeed.Core.Waveforms;
@@ -276,7 +277,22 @@ public sealed class AppBootstrapper : IDisposable
 
     private void HandleBluetoothStatusChanged(BluetoothConnectionStatus status)
     {
-        BluetoothStatusUpdated?.Invoke(status);
+        if (BluetoothStatusUpdated is null)
+        {
+            return;
+        }
+
+        foreach (var handler in BluetoothStatusUpdated.GetInvocationList().Cast<Action<BluetoothConnectionStatus>>())
+        {
+            try
+            {
+                handler(status);
+            }
+            catch (Exception ex)
+            {
+                AppDiagnostics.WriteException("AppBootstrapper.BluetoothStatusUpdated", ex);
+            }
+        }
     }
 
     private void HandleSnapshotTimerTick(object? sender, EventArgs e)

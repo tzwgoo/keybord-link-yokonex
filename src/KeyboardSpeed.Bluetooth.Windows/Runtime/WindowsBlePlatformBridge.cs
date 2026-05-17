@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.Versioning;
 using KeyboardSpeed.Core.Bluetooth;
+using KeyboardSpeed.Core.Diagnostics;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
@@ -355,45 +356,52 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
 
     private void OnNotifyCharacteristicValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
     {
-        if (_currentStatus.Device is null)
+        try
         {
-            return;
-        }
-
-        var reader = DataReader.FromBuffer(args.CharacteristicValue);
-        var packet = new byte[reader.UnconsumedBufferLength];
-        reader.ReadBytes(packet);
-
-        if (_notificationParser.TryReadBatteryLevel(_currentStatus.Device.DeviceType, packet, out var batteryLevel))
-        {
-            _currentStatus = _currentStatus with
+            if (_currentStatus.Device is null)
             {
-                BatteryLevel = batteryLevel
-            };
-        }
+                return;
+            }
 
-        var parsedStatus = _notificationParser.ParseStatus(_currentStatus.Device.DeviceType, packet);
-        if (parsedStatus is not null)
-        {
-            _currentStatus = _currentStatus with
+            var reader = DataReader.FromBuffer(args.CharacteristicValue);
+            var packet = new byte[reader.UnconsumedBufferLength];
+            reader.ReadBytes(packet);
+
+            if (_notificationParser.TryReadBatteryLevel(_currentStatus.Device.DeviceType, packet, out var batteryLevel))
             {
-                BatteryLevel = parsedStatus.BatteryLevel ?? _currentStatus.BatteryLevel,
-                ChannelAElectrodeStatus = parsedStatus.ChannelAElectrodeStatus ?? _currentStatus.ChannelAElectrodeStatus,
-                ChannelAEnabled = parsedStatus.ChannelAEnabled ?? _currentStatus.ChannelAEnabled,
-                ChannelAStrength = parsedStatus.ChannelAStrength ?? _currentStatus.ChannelAStrength,
-                ChannelAMode = parsedStatus.ChannelAMode ?? _currentStatus.ChannelAMode,
-                ChannelBElectrodeStatus = parsedStatus.ChannelBElectrodeStatus ?? _currentStatus.ChannelBElectrodeStatus,
-                ChannelBEnabled = parsedStatus.ChannelBEnabled ?? _currentStatus.ChannelBEnabled,
-                ChannelBStrength = parsedStatus.ChannelBStrength ?? _currentStatus.ChannelBStrength,
-                ChannelBMode = parsedStatus.ChannelBMode ?? _currentStatus.ChannelBMode,
-                MotorState = parsedStatus.MotorState ?? _currentStatus.MotorState,
-                StepCount = parsedStatus.StepCount ?? _currentStatus.StepCount,
-                ErrorCode = parsedStatus.ErrorCode ?? _currentStatus.ErrorCode,
-                LastError = string.Empty
-            };
-        }
+                _currentStatus = _currentStatus with
+                {
+                    BatteryLevel = batteryLevel
+                };
+            }
 
-        StatusUpdated?.Invoke(_currentStatus);
+            var parsedStatus = _notificationParser.ParseStatus(_currentStatus.Device.DeviceType, packet);
+            if (parsedStatus is not null)
+            {
+                _currentStatus = _currentStatus with
+                {
+                    BatteryLevel = parsedStatus.BatteryLevel ?? _currentStatus.BatteryLevel,
+                    ChannelAElectrodeStatus = parsedStatus.ChannelAElectrodeStatus ?? _currentStatus.ChannelAElectrodeStatus,
+                    ChannelAEnabled = parsedStatus.ChannelAEnabled ?? _currentStatus.ChannelAEnabled,
+                    ChannelAStrength = parsedStatus.ChannelAStrength ?? _currentStatus.ChannelAStrength,
+                    ChannelAMode = parsedStatus.ChannelAMode ?? _currentStatus.ChannelAMode,
+                    ChannelBElectrodeStatus = parsedStatus.ChannelBElectrodeStatus ?? _currentStatus.ChannelBElectrodeStatus,
+                    ChannelBEnabled = parsedStatus.ChannelBEnabled ?? _currentStatus.ChannelBEnabled,
+                    ChannelBStrength = parsedStatus.ChannelBStrength ?? _currentStatus.ChannelBStrength,
+                    ChannelBMode = parsedStatus.ChannelBMode ?? _currentStatus.ChannelBMode,
+                    MotorState = parsedStatus.MotorState ?? _currentStatus.MotorState,
+                    StepCount = parsedStatus.StepCount ?? _currentStatus.StepCount,
+                    ErrorCode = parsedStatus.ErrorCode ?? _currentStatus.ErrorCode,
+                    LastError = string.Empty
+                };
+            }
+
+            StatusUpdated?.Invoke(_currentStatus);
+        }
+        catch (Exception ex)
+        {
+            AppDiagnostics.WriteException("WindowsBlePlatformBridge.OnNotifyCharacteristicValueChanged", ex);
+        }
     }
 
     private static byte[] BuildEmsQueryPacket(byte queryType)
