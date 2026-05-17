@@ -294,6 +294,53 @@
                                 Text="当前阶段已支持扫描、连接、断开和 EMS 停止包发送。后续会继续补设备遥测、波形试播和自动速度区间触发。" />
                         </StackPanel>
                     </Border>
+
+                    <Border
+                        Margin="0,16,0,0"
+                        Padding="16"
+                        Background="#0F172A"
+                        BorderBrush="#1E293B"
+                        BorderThickness="1"
+                        CornerRadius="16">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="#94A3B8"
+                                Text="波形试播与当前规则" />
+                            <TextBlock
+                                x:Name="RuleText"
+                                Margin="0,8,0,0"
+                                FontSize="14"
+                                Foreground="#E2E8F0"
+                                Text="命中规则: 未命中" />
+                            <TextBlock
+                                x:Name="WaveformText"
+                                Margin="0,6,0,0"
+                                FontSize="14"
+                                Foreground="#E2E8F0"
+                                Text="当前波形: 未触发" />
+                            <ComboBox
+                                x:Name="WaveformsComboBox"
+                                Margin="0,12,0,0"
+                                Height="36"
+                                SelectionChanged="OnWaveformSelectionChanged"
+                                DisplayMemberPath="Name"
+                                Background="#111827"
+                                Foreground="#F8FAFC"
+                                BorderBrush="#334155" />
+                            <Button
+                                x:Name="PlayWaveformButton"
+                                Margin="0,12,0,0"
+                                Padding="12,8"
+                                Click="OnPlayWaveformClicked"
+                                Content="试播选中波形" />
+                            <Canvas
+                                x:Name="WaveformPreviewCanvas"
+                                Margin="0,16,0,0"
+                                Height="120"
+                                Background="#111827" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
         </Grid>
