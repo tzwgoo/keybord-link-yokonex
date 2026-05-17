@@ -10,21 +10,40 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        base.OnStartup(e);
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnCurrentDomainUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+        try
+        {
+            base.OnStartup(e);
+            AppDiagnostics.WriteInfo("App.OnStartup", $"应用启动，日志文件: {AppDiagnostics.LogFilePath}");
 
-        _bootstrapper = new AppBootstrapper();
-        _bootstrapper.Start();
+            _bootstrapper = new AppBootstrapper();
+            AppDiagnostics.WriteInfo("App.OnStartup", "AppBootstrapper 构建完成");
 
-        var mainWindow = new MainWindow(_bootstrapper);
-        MainWindow = mainWindow;
-        mainWindow.Show();
+            _bootstrapper.Start();
+            AppDiagnostics.WriteInfo("App.OnStartup", "AppBootstrapper 已启动");
+
+            var mainWindow = new MainWindow(_bootstrapper);
+            MainWindow = mainWindow;
+            mainWindow.Show();
+            AppDiagnostics.WriteInfo("App.OnStartup", "主窗口已显示");
+        }
+        catch (Exception ex)
+        {
+            AppDiagnostics.WriteException("App.OnStartup", ex);
+            MessageBox.Show(
+                $"程序在启动阶段发生异常，已写入日志：{AppDiagnostics.LogFilePath}{Environment.NewLine}{ex.Message}",
+                "Keyboard Speed YOKONEX",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(-1);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        AppDiagnostics.WriteInfo("App.OnExit", $"应用退出，退出代码: {e.ApplicationExitCode}");
         _bootstrapper?.Dispose();
         DispatcherUnhandledException -= OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException -= OnCurrentDomainUnhandledException;

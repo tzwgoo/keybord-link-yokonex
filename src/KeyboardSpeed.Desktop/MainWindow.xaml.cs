@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using KeyboardSpeed.Core.Bluetooth;
 using KeyboardSpeed.Core.Rules;
+using KeyboardSpeed.Core.Diagnostics;
 using KeyboardSpeed.Core.Typing;
 using KeyboardSpeed.Core.Waveforms;
 using KeyboardSpeed.Desktop.Services;
@@ -399,6 +400,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            AppDiagnostics.WriteException("MainWindow.ExecuteBusyActionAsync", ex);
             ErrorText.Text = $"最近错误: {ex.Message}";
         }
         finally

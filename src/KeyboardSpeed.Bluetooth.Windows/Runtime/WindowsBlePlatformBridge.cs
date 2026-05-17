@@ -43,6 +43,9 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
     {
         try
         {
+            AppDiagnostics.WriteInfo(
+                "WindowsBlePlatformBridge.ConnectAsync",
+                $"开始连接: id={device.DeviceId}, name={device.Name}, type={device.DeviceType}, profile={device.ProtocolProfile}");
             await DisconnectAsync(cancellationToken);
 
             _connectedDevice = await OpenDeviceAsync(device.DeviceId);
@@ -54,8 +57,13 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
                     Device = device,
                     LastError = "未能打开蓝牙设备。"
                 };
+                AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ConnectAsync", "连接失败：未能打开蓝牙设备。");
                 return _currentStatus;
             }
+
+            AppDiagnostics.WriteInfo(
+                "WindowsBlePlatformBridge.ConnectAsync",
+                $"设备已打开: name={_connectedDevice.Name}, connection={_connectedDevice.ConnectionStatus}");
 
             _writeCharacteristic = await ResolveWriteCharacteristicAsync(_connectedDevice, device.DeviceType);
             _notifyCharacteristic = await ResolveNotifyCharacteristicAsync(_connectedDevice, device.DeviceType);
@@ -67,8 +75,13 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
                     Device = device,
                     LastError = "未找到可写入的蓝牙特征。"
                 };
+                AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ConnectAsync", "连接失败：未找到可写入特征。");
                 return _currentStatus;
             }
+
+            AppDiagnostics.WriteInfo(
+                "WindowsBlePlatformBridge.ConnectAsync",
+                $"特征解析完成: write={_writeCharacteristic.Uuid}, notify={_notifyCharacteristic?.Uuid.ToString() ?? "none"}");
 
             _currentStatus = new CoreBluetoothConnectionStatus
             {
@@ -78,10 +91,12 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
             };
 
             await SubscribeNotificationsAsync(cancellationToken);
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ConnectAsync", "通知订阅流程结束，准备刷新设备状态。");
             return await RefreshStatusAsync(_currentStatus, cancellationToken);
         }
         catch (Exception ex)
         {
+            AppDiagnostics.WriteException("WindowsBlePlatformBridge.ConnectAsync", ex);
             _currentStatus = new CoreBluetoothConnectionStatus
             {
                 IsConnected = false,
@@ -114,6 +129,9 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
+        AppDiagnostics.WriteInfo(
+            "WindowsBlePlatformBridge.DisconnectAsync",
+            $"开始断开设备: {_currentStatus.Device?.Name ?? _currentStatus.Device?.DeviceId ?? "none"}");
         if (_notifyCharacteristic is not null)
         {
             _notifyCharacteristic.ValueChanged -= OnNotifyCharacteristicValueChanged;
@@ -130,18 +148,24 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
         }
 
         _currentStatus = new CoreBluetoothConnectionStatus();
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.DisconnectAsync", "设备断开完成。");
     }
 
     public async Task WriteAsync(byte[] packet, CancellationToken cancellationToken = default)
     {
         if (_writeCharacteristic is null)
         {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.WriteAsync", "跳过写入：当前没有可用的写特征。");
             return;
         }
 
         using var writer = new DataWriter();
         writer.WriteBytes(packet);
-        await _writeCharacteristic.WriteValueAsync(writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse).AsTask(cancellationToken);
+        var result = await _writeCharacteristic.WriteValueAsync(writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse).AsTask(cancellationToken);
+        if (result != GattCommunicationStatus.Success)
+        {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.WriteAsync", $"写入返回状态: {result}");
+        }
     }
 
     private static async Task ScanAdvertisementsAsync(
@@ -342,6 +366,7 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
     {
         if (_notifyCharacteristic is null)
         {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.SubscribeNotificationsAsync", "当前设备没有通知特征。");
             return;
         }
 
@@ -351,7 +376,13 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
         if (result == GattCommunicationStatus.Success)
         {
             _notifyCharacteristic.ValueChanged += OnNotifyCharacteristicValueChanged;
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.SubscribeNotificationsAsync", "通知特征订阅成功。");
+            return;
         }
+
+        AppDiagnostics.WriteInfo(
+            "WindowsBlePlatformBridge.SubscribeNotificationsAsync",
+            $"通知特征订阅失败，状态: {result}");
     }
 
     private void OnNotifyCharacteristicValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)

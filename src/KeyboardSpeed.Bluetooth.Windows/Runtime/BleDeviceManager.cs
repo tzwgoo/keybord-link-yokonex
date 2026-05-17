@@ -43,6 +43,7 @@ public sealed class BleDeviceManager : IBluetoothDeviceManager
     public async Task<bool> ConnectAsync(string deviceId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        AppDiagnostics.WriteInfo("BleDeviceManager.ConnectAsync", $"准备连接设备: {deviceId}");
 
         var device = _availableDevices.FirstOrDefault(item => string.Equals(item.DeviceId, deviceId, StringComparison.OrdinalIgnoreCase));
         if (device is null)
@@ -51,6 +52,7 @@ public sealed class BleDeviceManager : IBluetoothDeviceManager
             {
                 LastError = $"未找到设备: {deviceId}"
             });
+            AppDiagnostics.WriteInfo("BleDeviceManager.ConnectAsync", $"连接失败，设备不存在: {deviceId}");
             return false;
         }
 
@@ -61,10 +63,14 @@ public sealed class BleDeviceManager : IBluetoothDeviceManager
             {
                 Device = status.Device ?? device
             });
+            AppDiagnostics.WriteInfo(
+                "BleDeviceManager.ConnectAsync",
+                $"连接完成: connected={_status.IsConnected}, device={_status.Device?.Name ?? device.Name}, lastError={_status.LastError}");
             return _status.IsConnected;
         }
         catch (Exception ex)
         {
+            AppDiagnostics.WriteException("BleDeviceManager.ConnectAsync", ex);
             UpdateStatus(_status with
             {
                 IsConnected = false,
@@ -92,6 +98,7 @@ public sealed class BleDeviceManager : IBluetoothDeviceManager
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        AppDiagnostics.WriteInfo("BleDeviceManager.DisconnectAsync", $"断开设备: {_status.Device?.Name ?? _status.Device?.DeviceId ?? "none"}");
         await _platformBridge.DisconnectAsync(cancellationToken);
         _packetHistory.Clear();
         UpdateStatus(new BluetoothConnectionStatus());

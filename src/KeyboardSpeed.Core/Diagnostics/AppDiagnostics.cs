@@ -7,10 +7,9 @@ public static class AppDiagnostics
     private static readonly Lock SyncRoot = new();
 
     public static string LogFilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "KeyboardSpeed-YOKONEX",
+        AppContext.BaseDirectory,
         "logs",
-        "desktop.log");
+        "debug.log");
 
     public static void WriteInfo(string source, string message)
     {
