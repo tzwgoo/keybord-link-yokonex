@@ -8,9 +8,17 @@ public sealed record EmsWaveformStep
 
     public int AMode { get; init; } = 1;
 
+    public int AFrequency { get; init; }
+
+    public int APulseWidth { get; init; }
+
     public int BStrength { get; init; }
 
     public int BMode { get; init; } = 1;
+
+    public int BFrequency { get; init; }
+
+    public int BPulseWidth { get; init; }
 
     public int MotorState { get; init; }
 }
