@@ -5,10 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Keyboard Speed YOKONEX"
-        Height="520"
-        Width="880"
-        MinHeight="480"
-        MinWidth="760"
+        Height="640"
+        Width="980"
+        MinHeight="560"
+        MinWidth="860"
         WindowStartupLocation="CenterScreen"
         Background="#0B1020">
     <Grid Margin="24">
@@ -205,12 +205,94 @@
                         BorderBrush="#1E293B"
                         BorderThickness="1"
                         CornerRadius="16">
-                        <TextBlock
-                            TextWrapping="Wrap"
-                            FontSize="13"
-                            LineHeight="22"
-                            Foreground="#CBD5E1"
-                            Text="当前阶段先完成最小闭环：全局键盘监听、实时速度刷新，以及面向后续 BLE 触发流程的运行时编排。下一步会把蓝牙接入、设备控制和波形触发接进来。" />
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="#94A3B8"
+                                Text="设备状态" />
+                            <TextBlock
+                                x:Name="DeviceStatusText"
+                                Margin="0,8,0,0"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="#E2E8F0"
+                                Text="未连接" />
+                            <TextBlock
+                                x:Name="BatteryText"
+                                Margin="0,10,0,0"
+                                FontSize="13"
+                                Foreground="#CBD5E1"
+                                Text="电量: --" />
+                            <TextBlock
+                                x:Name="ErrorText"
+                                Margin="0,8,0,0"
+                                FontSize="12"
+                                TextWrapping="Wrap"
+                                Foreground="#FCA5A5"
+                                Text="最近错误: 无" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Margin="0,16,0,0"
+                        Padding="16"
+                        Background="#0F172A"
+                        BorderBrush="#1E293B"
+                        BorderThickness="1"
+                        CornerRadius="16">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="#94A3B8"
+                                Text="蓝牙设备" />
+                            <ComboBox
+                                x:Name="DevicesComboBox"
+                                Margin="0,12,0,0"
+                                Height="36"
+                                DisplayMemberPath="Summary"
+                                Background="#111827"
+                                Foreground="#F8FAFC"
+                                BorderBrush="#334155" />
+                            <UniformGrid Margin="0,12,0,0" Columns="2">
+                                <Button
+                                    x:Name="ScanButton"
+                                    Margin="0,0,8,8"
+                                    Padding="12,8"
+                                    Click="OnScanClicked"
+                                    Content="扫描设备" />
+                                <Button
+                                    x:Name="RefreshButton"
+                                    Margin="8,0,0,8"
+                                    Padding="12,8"
+                                    Click="OnRefreshClicked"
+                                    Content="刷新状态" />
+                                <Button
+                                    x:Name="ConnectButton"
+                                    Margin="0,8,8,0"
+                                    Padding="12,8"
+                                    Click="OnConnectClicked"
+                                    Content="连接设备" />
+                                <Button
+                                    x:Name="DisconnectButton"
+                                    Margin="8,8,0,0"
+                                    Padding="12,8"
+                                    Click="OnDisconnectClicked"
+                                    Content="断开设备" />
+                            </UniformGrid>
+                            <Button
+                                x:Name="StopButton"
+                                Margin="0,12,0,0"
+                                Padding="12,8"
+                                Click="OnStopClicked"
+                                Content="发送停止包" />
+                            <TextBlock
+                                Margin="0,12,0,0"
+                                TextWrapping="Wrap"
+                                FontSize="12"
+                                LineHeight="20"
+                                Foreground="#CBD5E1"
+                                Text="当前阶段已支持扫描、连接、断开和 EMS 停止包发送。后续会继续补设备遥测、波形试播和自动速度区间触发。" />
+                        </StackPanel>
                     </Border>
                 </StackPanel>
             </Border>

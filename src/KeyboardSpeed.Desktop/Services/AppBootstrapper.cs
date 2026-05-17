@@ -1,4 +1,6 @@
 using System.Windows.Threading;
+using KeyboardSpeed.Bluetooth.Windows.Runtime;
+using KeyboardSpeed.Core.Bluetooth;
 using KeyboardSpeed.Core.Typing;
 using KeyboardSpeed.Input.Windows;
 
@@ -8,23 +10,28 @@ public sealed class AppBootstrapper : IDisposable
 {
     private readonly TypingSpeedCalculator _typingSpeedCalculator;
     private readonly IGlobalKeyboardListener _keyboardListener;
+    private readonly BleDeviceManager _bleDeviceManager;
     private readonly DispatcherTimer _snapshotTimer;
     private bool _disposed;
 
     public AppBootstrapper()
         : this(
             new TypingSpeedCalculator(new TypingSpeedOptions()),
-            new GlobalKeyboardListener())
+            new GlobalKeyboardListener(),
+            new BleDeviceManager())
     {
     }
 
     public AppBootstrapper(
         TypingSpeedCalculator typingSpeedCalculator,
-        IGlobalKeyboardListener keyboardListener)
+        IGlobalKeyboardListener keyboardListener,
+        BleDeviceManager bleDeviceManager)
     {
         _typingSpeedCalculator = typingSpeedCalculator ?? throw new ArgumentNullException(nameof(typingSpeedCalculator));
         _keyboardListener = keyboardListener ?? throw new ArgumentNullException(nameof(keyboardListener));
+        _bleDeviceManager = bleDeviceManager ?? throw new ArgumentNullException(nameof(bleDeviceManager));
         _keyboardListener.KeystrokeCaptured += HandleKeystrokeCaptured;
+        _bleDeviceManager.StatusChanged += HandleBluetoothStatusChanged;
 
         _snapshotTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -36,11 +43,17 @@ public sealed class AppBootstrapper : IDisposable
 
     public event Action<TypingSpeedSnapshot>? SnapshotUpdated;
 
+    public event Action<BluetoothConnectionStatus>? BluetoothStatusUpdated;
+
     public TypingSpeedSnapshot CurrentSnapshot { get; private set; }
 
     public DateTimeOffset? LastKeystrokeAt { get; private set; }
 
     public bool IsListening { get; private set; }
+
+    public IReadOnlyList<BluetoothDeviceDescriptor> AvailableDevices => _bleDeviceManager.AvailableDevices;
+
+    public BluetoothConnectionStatus BluetoothStatus => _bleDeviceManager.CurrentStatus;
 
     public void Start()
     {
@@ -73,9 +86,40 @@ public sealed class AppBootstrapper : IDisposable
 
         Stop();
         _keyboardListener.KeystrokeCaptured -= HandleKeystrokeCaptured;
+        _bleDeviceManager.StatusChanged -= HandleBluetoothStatusChanged;
         _keyboardListener.Dispose();
         _snapshotTimer.Tick -= HandleSnapshotTimerTick;
         _disposed = true;
+    }
+
+    public Task<IReadOnlyList<BluetoothDeviceDescriptor>> ScanBluetoothAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        return _bleDeviceManager.ScanAsync(cancellationToken);
+    }
+
+    public Task<bool> ConnectBluetoothAsync(string deviceId, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        return _bleDeviceManager.ConnectAsync(deviceId, cancellationToken);
+    }
+
+    public Task DisconnectBluetoothAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        return _bleDeviceManager.DisconnectAsync(cancellationToken);
+    }
+
+    public Task RefreshBluetoothAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        return _bleDeviceManager.RefreshStatusAsync(cancellationToken);
+    }
+
+    public Task StopWaveformAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        return _bleDeviceManager.StopAsync(cancellationToken);
     }
 
     private void HandleKeystrokeCaptured(object? sender, KeystrokeCapturedEventArgs e)
@@ -83,6 +127,11 @@ public sealed class AppBootstrapper : IDisposable
         LastKeystrokeAt = e.Timestamp;
         _typingSpeedCalculator.RecordKeystroke(e.Timestamp);
         PublishSnapshot(e.Timestamp);
+    }
+
+    private void HandleBluetoothStatusChanged(BluetoothConnectionStatus status)
+    {
+        BluetoothStatusUpdated?.Invoke(status);
     }
 
     private void HandleSnapshotTimerTick(object? sender, EventArgs e)
