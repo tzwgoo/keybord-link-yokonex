@@ -636,28 +636,70 @@ public partial class MainWindow : Window
         var step = steps[index];
         var card = new Border
         {
-            Background = CreateBrush("#101B30"),
-            BorderBrush = CreateBrush("#2B3B5A"),
+            Background = CreateBrush("#0E182A"),
+            BorderBrush = CreateBrush("#22314B"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
-            Padding = new Thickness(12),
-            Margin = new Thickness(0, 0, 0, 10)
+            CornerRadius = new CornerRadius(18),
+            Padding = new Thickness(0),
+            Margin = new Thickness(0, 0, 0, 12)
         };
 
-        var root = new StackPanel();
-        card.Child = root;
+        var shell = new Grid();
+        shell.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
+        shell.ColumnDefinitions.Add(new ColumnDefinition());
+        card.Child = shell;
+
+        shell.Children.Add(new Border
+        {
+            Background = ResolveStepAccentBrush(index),
+            CornerRadius = new CornerRadius(18, 0, 0, 18)
+        });
+
+        var root = new StackPanel
+        {
+            Margin = new Thickness(16, 14, 16, 16)
+        };
+        Grid.SetColumn(root, 1);
+        shell.Children.Add(root);
 
         var header = new Grid();
         header.ColumnDefinitions.Add(new ColumnDefinition());
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         root.Children.Add(header);
 
-        header.Children.Add(new TextBlock
+        var titleStack = new StackPanel();
+        header.Children.Add(titleStack);
+
+        titleStack.Children.Add(new Border
         {
-            Text = $"步骤 {index + 1}",
+            Background = ResolveStepAccentBackgroundBrush(index),
+            BorderBrush = ResolveStepAccentBrush(index),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(999),
+            Padding = new Thickness(10, 4, 10, 4),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Child = new TextBlock
+            {
+                Text = $"步骤 {index + 1}",
+                Foreground = ResolveStepAccentBrush(index),
+                FontSize = 11,
+                FontWeight = FontWeights.Bold
+            }
+        });
+        titleStack.Children.Add(new TextBlock
+        {
+            Text = $"{step.DurationMs} ms  ·  A {step.AStrength}  ·  B {step.BStrength}",
+            Margin = new Thickness(0, 10, 0, 0),
             Foreground = CreateBrush("#F8FAFC"),
-            FontSize = 14,
+            FontSize = 15,
             FontWeight = FontWeights.SemiBold
+        });
+        titleStack.Children.Add(new TextBlock
+        {
+            Text = $"模式 A{step.AMode} / B{step.BMode} · 电机 {step.MotorState}",
+            Margin = new Thickness(0, 6, 0, 0),
+            Foreground = CreateBrush("#7F96B8"),
+            FontSize = 11
         });
 
         var actionRow = new StackPanel
@@ -682,15 +724,9 @@ public partial class MainWindow : Window
         actionRow.Children.Add(CreateStepActionButton("删除", (_, _) =>
         {
             UpdateWaveformScriptFromSteps(WaveformStepEditorLogic.DeleteStep(GetCurrentEditorSteps(), index));
-        }));
+        }, isDisabled: false, isDanger: true));
 
-        root.Children.Add(new TextBlock
-        {
-            Text = "修改下列字段后，脚本文本和波形预览会自动同步。",
-            Margin = new Thickness(0, 8, 0, 0),
-            Foreground = CreateBrush("#A9B8D3"),
-            FontSize = 11
-        });
+        root.Children.Add(BuildStrengthSummaryRow(step));
 
         root.Children.Add(CreateStepFieldRow(
             ("时长", step.DurationMs, value => step = step with { DurationMs = value }),
@@ -775,16 +811,120 @@ public partial class MainWindow : Window
 
     private Button CreateStepActionButton(string text, RoutedEventHandler handler, bool isDisabled = false)
     {
+        return CreateStepActionButton(text, handler, isDisabled, isDanger: false);
+    }
+
+    private Button CreateStepActionButton(string text, RoutedEventHandler handler, bool isDisabled, bool isDanger)
+    {
         var button = new Button
         {
             Content = text,
             Margin = new Thickness(6, 0, 0, 0),
-            Padding = new Thickness(10, 6, 10, 6),
-            FontSize = 11,
+            Padding = new Thickness(10, 4, 10, 4),
+            FontSize = 10,
+            FontWeight = FontWeights.Medium,
             IsEnabled = !isDisabled
         };
+        button.Background = isDanger ? CreateBrush("#261217") : CreateBrush("#101B2D");
+        button.BorderBrush = isDanger ? CreateBrush("#6F3140") : CreateBrush("#233754");
+        button.Foreground = isDanger ? CreateBrush("#F9C7D0") : CreateBrush("#C9D7EC");
         button.Click += handler;
         return button;
+    }
+
+    private UIElement BuildStrengthSummaryRow(EmsWaveformStep step)
+    {
+        var panel = new StackPanel
+        {
+            Margin = new Thickness(0, 14, 0, 2)
+        };
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "强度概览",
+            Foreground = CreateBrush("#8FA4C6"),
+            FontSize = 11
+        });
+
+        var row = new Grid
+        {
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+        row.ColumnDefinitions.Add(new ColumnDefinition());
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+        row.ColumnDefinitions.Add(new ColumnDefinition());
+
+        row.Children.Add(CreateStrengthBar("A 通道", step.AStrength, "#4FD1C5", 0));
+        row.Children.Add(CreateStrengthBar("B 通道", step.BStrength, "#F59E0B", 2));
+        panel.Children.Add(row);
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "修改下列字段后，脚本文本和波形预览会自动同步。",
+            Margin = new Thickness(0, 12, 0, 0),
+            Foreground = CreateBrush("#A9B8D3"),
+            FontSize = 11
+        });
+
+        return panel;
+    }
+
+    private UIElement CreateStrengthBar(string label, int strength, string colorHex, int columnIndex)
+    {
+        var host = new StackPanel();
+        Grid.SetColumn(host, columnIndex);
+
+        host.Children.Add(new TextBlock
+        {
+            Text = $"{label}  {strength}%",
+            Foreground = CreateBrush("#D8E2F3"),
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold
+        });
+
+        var track = new Border
+        {
+            Background = CreateBrush("#162235"),
+            BorderBrush = CreateBrush("#263752"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(999),
+            Height = 10,
+            Margin = new Thickness(0, 8, 0, 0),
+            Child = new Grid()
+        };
+
+        var trackGrid = (Grid)track.Child;
+        trackGrid.Children.Add(new Border
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Width = Math.Max(8, 1.8 * Math.Clamp(strength, 0, 100)),
+            Background = CreateBrush(colorHex),
+            CornerRadius = new CornerRadius(999),
+            Opacity = 0.95
+        });
+
+        host.Children.Add(track);
+        return host;
+    }
+
+    private static Brush ResolveStepAccentBrush(int index)
+    {
+        return CreateBrush((index % 3) switch
+        {
+            0 => "#4FD1C5",
+            1 => "#60A5FA",
+            _ => "#F59E0B"
+        });
+    }
+
+    private static Brush ResolveStepAccentBackgroundBrush(int index)
+    {
+        return CreateBrush((index % 3) switch
+        {
+            0 => "#11323B",
+            1 => "#122A47",
+            _ => "#3C2A11"
+        });
     }
 
     private sealed record DeviceOption(string DeviceId, string Summary);
