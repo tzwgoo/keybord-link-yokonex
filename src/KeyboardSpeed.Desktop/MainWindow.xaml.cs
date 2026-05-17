@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using KeyboardSpeed.Core.Bluetooth;
@@ -13,6 +14,7 @@ public partial class MainWindow : Window
 {
     private readonly AppBootstrapper _bootstrapper;
     private bool _isBusy;
+    private bool _isUpdatingWaveformEditor;
 
     public MainWindow(AppBootstrapper bootstrapper)
     {
@@ -267,8 +269,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        WaveformNameTextBox.Text = template.SuggestedWaveformName;
-        WaveformScriptTextBox.Text = template.Script;
+        SetWaveformEditorValues(template.SuggestedWaveformName, template.Script);
         RenderWaveformPreviewFromEditor();
     }
 
@@ -295,7 +296,24 @@ public partial class MainWindow : Window
 
     private void OnWaveformScriptTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
+        if (_isUpdatingWaveformEditor)
+        {
+            return;
+        }
+
         RenderWaveformPreviewFromEditor();
+        RefreshWaveformStepEditor();
+    }
+
+    private void OnAddWaveformStepClicked(object sender, RoutedEventArgs e)
+    {
+        if (!TryParseWaveformEditorSteps(out var steps))
+        {
+            ErrorText.Text = "最近错误: 当前脚本格式无效，无法添加步骤。";
+            return;
+        }
+
+        UpdateWaveformScriptFromSteps(WaveformStepEditorLogic.InsertStepAfter(steps, steps.Count - 1));
     }
 
     private void OnNewRuleClicked(object sender, RoutedEventArgs e)
@@ -477,11 +495,13 @@ public partial class MainWindow : Window
 
     private void ApplyWaveformEditor(EmsWaveformDefinition? waveform)
     {
-        WaveformNameTextBox.Text = waveform?.Name ?? "新波形";
-        WaveformScriptTextBox.Text = waveform is null
-            ? "120,10,1,10,1,0"
-            : WaveformScriptSerializer.Serialize(waveform.Steps);
+        SetWaveformEditorValues(
+            waveform?.Name ?? "新波形",
+            waveform is null
+                ? "120,10,1,10,1,0"
+                : WaveformScriptSerializer.Serialize(waveform.Steps));
         RenderWaveformPreviewFromEditor();
+        RefreshWaveformStepEditor();
     }
 
     private void ApplyRuleEditor(SpeedRangeRule? rule)
@@ -553,6 +573,218 @@ public partial class MainWindow : Window
         };
 
         return $"{enabledText} | 强度 {(strength.HasValue ? strength.Value.ToString() : "--")} | 模式 {(mode.HasValue ? mode.Value.ToString() : "--")} | 贴片 {(electrodeStatus.HasValue ? electrodeStatus.Value.ToString() : "--")}";
+    }
+
+    private void SetWaveformEditorValues(string name, string script)
+    {
+        _isUpdatingWaveformEditor = true;
+        try
+        {
+            WaveformNameTextBox.Text = name;
+            WaveformScriptTextBox.Text = script;
+        }
+        finally
+        {
+            _isUpdatingWaveformEditor = false;
+        }
+    }
+
+    private bool TryParseWaveformEditorSteps(out List<EmsWaveformStep> steps)
+    {
+        try
+        {
+            steps = WaveformScriptSerializer.Parse(WaveformScriptTextBox.Text);
+            return true;
+        }
+        catch (FormatException)
+        {
+            steps = [];
+            return false;
+        }
+    }
+
+    private void UpdateWaveformScriptFromSteps(IReadOnlyList<EmsWaveformStep> steps)
+    {
+        SetWaveformEditorValues(WaveformNameTextBox.Text, WaveformScriptSerializer.Serialize(steps));
+        RenderWaveformPreviewFromEditor();
+        RefreshWaveformStepEditor();
+    }
+
+    private void RefreshWaveformStepEditor()
+    {
+        WaveformStepEditorPanel.Children.Clear();
+        if (!TryParseWaveformEditorSteps(out var steps))
+        {
+            WaveformStepEditorPanel.Children.Add(new TextBlock
+            {
+                Text = "脚本格式无效，暂时无法显示步骤卡片。",
+                Foreground = CreateBrush("#FCA5A5"),
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap
+            });
+            return;
+        }
+
+        for (var index = 0; index < steps.Count; index++)
+        {
+            WaveformStepEditorPanel.Children.Add(BuildWaveformStepCard(steps, index));
+        }
+    }
+
+    private Border BuildWaveformStepCard(IReadOnlyList<EmsWaveformStep> steps, int index)
+    {
+        var step = steps[index];
+        var card = new Border
+        {
+            Background = CreateBrush("#101B30"),
+            BorderBrush = CreateBrush("#2B3B5A"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(12),
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+
+        var root = new StackPanel();
+        card.Child = root;
+
+        var header = new Grid();
+        header.ColumnDefinitions.Add(new ColumnDefinition());
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        root.Children.Add(header);
+
+        header.Children.Add(new TextBlock
+        {
+            Text = $"步骤 {index + 1}",
+            Foreground = CreateBrush("#F8FAFC"),
+            FontSize = 14,
+            FontWeight = FontWeights.SemiBold
+        });
+
+        var actionRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal
+        };
+        Grid.SetColumn(actionRow, 1);
+        header.Children.Add(actionRow);
+
+        actionRow.Children.Add(CreateStepActionButton("上移", (_, _) =>
+        {
+            UpdateWaveformScriptFromSteps(WaveformStepEditorLogic.MoveStep(GetCurrentEditorSteps(), index, moveUp: true));
+        }, index <= 0));
+        actionRow.Children.Add(CreateStepActionButton("下移", (_, _) =>
+        {
+            UpdateWaveformScriptFromSteps(WaveformStepEditorLogic.MoveStep(GetCurrentEditorSteps(), index, moveUp: false));
+        }, index >= steps.Count - 1));
+        actionRow.Children.Add(CreateStepActionButton("后插", (_, _) =>
+        {
+            UpdateWaveformScriptFromSteps(WaveformStepEditorLogic.InsertStepAfter(GetCurrentEditorSteps(), index));
+        }));
+        actionRow.Children.Add(CreateStepActionButton("删除", (_, _) =>
+        {
+            UpdateWaveformScriptFromSteps(WaveformStepEditorLogic.DeleteStep(GetCurrentEditorSteps(), index));
+        }));
+
+        root.Children.Add(new TextBlock
+        {
+            Text = "修改下列字段后，脚本文本和波形预览会自动同步。",
+            Margin = new Thickness(0, 8, 0, 0),
+            Foreground = CreateBrush("#A9B8D3"),
+            FontSize = 11
+        });
+
+        root.Children.Add(CreateStepFieldRow(
+            ("时长", step.DurationMs, value => step = step with { DurationMs = value }),
+            ("A 强度", step.AStrength, value => step = step with { AStrength = value }),
+            ("A 模式", step.AMode, value => step = step with { AMode = value })));
+
+        root.Children.Add(CreateStepFieldRow(
+            ("B 强度", step.BStrength, value => step = step with { BStrength = value }),
+            ("B 模式", step.BMode, value => step = step with { BMode = value }),
+            ("电机", step.MotorState, value => step = step with { MotorState = value })));
+
+        void Commit(Action<int> updater, string text)
+        {
+            if (!int.TryParse(text, out var value))
+            {
+                return;
+            }
+
+            updater(value);
+            UpdateWaveformScriptFromSteps(WaveformStepEditorLogic.UpdateStep(GetCurrentEditorSteps(), index, step));
+        }
+
+        Grid CreateStepFieldRow(
+            (string Label, int Value, Action<int> Update) first,
+            (string Label, int Value, Action<int> Update) second,
+            (string Label, int Value, Action<int> Update) third)
+        {
+            var row = new Grid
+            {
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+
+            row.Children.Add(CreateStepFieldCell(first, 0));
+            row.Children.Add(CreateStepFieldCell(second, 1));
+            row.Children.Add(CreateStepFieldCell(third, 2));
+            return row;
+        }
+
+        UIElement CreateStepFieldCell((string Label, int Value, Action<int> Update) field, int columnIndex)
+        {
+            var panel = new StackPanel
+            {
+                Margin = new Thickness(columnIndex == 0 ? 0 : 8, 0, 0, 0)
+            };
+            Grid.SetColumn(panel, columnIndex);
+
+            panel.Children.Add(new TextBlock
+            {
+                Text = field.Label,
+                Foreground = CreateBrush("#8FA4C6"),
+                FontSize = 11
+            });
+
+            var textBox = new TextBox
+            {
+                Text = field.Value.ToString(),
+                Margin = new Thickness(0, 6, 0, 0),
+                Height = 34
+            };
+            textBox.LostFocus += (_, _) => Commit(field.Update, textBox.Text);
+            textBox.KeyDown += (_, eventArgs) =>
+            {
+                if (eventArgs.Key == System.Windows.Input.Key.Enter)
+                {
+                    Commit(field.Update, textBox.Text);
+                }
+            };
+            panel.Children.Add(textBox);
+            return panel;
+        }
+
+        return card;
+    }
+
+    private IReadOnlyList<EmsWaveformStep> GetCurrentEditorSteps()
+    {
+        return TryParseWaveformEditorSteps(out var steps) ? steps : [new EmsWaveformStep()];
+    }
+
+    private Button CreateStepActionButton(string text, RoutedEventHandler handler, bool isDisabled = false)
+    {
+        var button = new Button
+        {
+            Content = text,
+            Margin = new Thickness(6, 0, 0, 0),
+            Padding = new Thickness(10, 6, 10, 6),
+            FontSize = 11,
+            IsEnabled = !isDisabled
+        };
+        button.Click += handler;
+        return button;
     }
 
     private sealed record DeviceOption(string DeviceId, string Summary);

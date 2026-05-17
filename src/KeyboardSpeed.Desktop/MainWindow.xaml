@@ -784,6 +784,34 @@
                                                      TextWrapping="NoWrap"
                                                      VerticalScrollBarVisibility="Auto" />
 
+                                            <Grid Margin="0,18,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="160" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Style="{StaticResource CaptionStyle}"
+                                                           VerticalAlignment="Center"
+                                                           Text="步骤可视化编辑器" />
+                                                <Button Grid.Column="1"
+                                                        Click="OnAddWaveformStepClicked"
+                                                        Content="添加步骤" />
+                                            </Grid>
+                                            <TextBlock Margin="0,8,0,0"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Text="可以直接修改每一步的时长、双通道强度和模式，右侧脚本会自动同步。" />
+                                            <Border Margin="0,10,0,0"
+                                                    Background="#0B1527"
+                                                    BorderBrush="#23314B"
+                                                    BorderThickness="1"
+                                                    CornerRadius="18"
+                                                    Padding="12">
+                                                <ScrollViewer Height="260"
+                                                              VerticalScrollBarVisibility="Auto">
+                                                    <StackPanel x:Name="WaveformStepEditorPanel" />
+                                                </ScrollViewer>
+                                            </Border>
+
                                             <UniformGrid Margin="0,16,0,0" Columns="3">
                                                 <Button Margin="0,0,8,0"
                                                         Click="OnNewWaveformClicked"
