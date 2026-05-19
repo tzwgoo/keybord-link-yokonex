@@ -30,13 +30,20 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
 
     public async Task<IReadOnlyList<BluetoothDeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default)
     {
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAsync", "开始执行扫描。");
         var discovered = new ConcurrentDictionary<string, BluetoothDeviceDescriptor>(StringComparer.OrdinalIgnoreCase);
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAsync", "准备扫描蓝牙广播。");
         await ScanAdvertisementsAsync(discovered, cancellationToken);
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAsync", $"蓝牙广播扫描完成，currentCount={discovered.Count}");
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAsync", "准备扫描系统已知设备。");
         await ScanKnownDevicesAsync(discovered, cancellationToken);
-        return discovered.Values
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAsync", $"系统已知设备扫描完成，totalCount={discovered.Count}");
+        var result = discovered.Values
             .OrderBy(static item => item.DeviceType)
             .ThenBy(static item => item.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAsync", $"扫描结果整理完成，deviceCount={result.Length}");
+        return result;
     }
 
     public async Task<CoreBluetoothConnectionStatus> ConnectAsync(BluetoothDeviceDescriptor device, CancellationToken cancellationToken = default)
@@ -46,7 +53,9 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
             AppDiagnostics.WriteInfo(
                 "WindowsBlePlatformBridge.ConnectAsync",
                 $"开始连接: id={device.DeviceId}, name={device.Name}, type={device.DeviceType}, profile={device.ProtocolProfile}");
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ConnectAsync", "准备清理旧连接状态。");
             await DisconnectAsync(cancellationToken);
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ConnectAsync", "旧连接状态清理完成，准备打开设备。");
 
             _connectedDevice = await OpenDeviceAsync(device.DeviceId);
             if (_connectedDevice is null)
@@ -65,8 +74,16 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
                 "WindowsBlePlatformBridge.ConnectAsync",
                 $"设备已打开: name={_connectedDevice.Name}, connection={_connectedDevice.ConnectionStatus}");
 
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ConnectAsync", "准备解析写入特征。");
             _writeCharacteristic = await ResolveWriteCharacteristicAsync(_connectedDevice, device.DeviceType);
+            AppDiagnostics.WriteInfo(
+                "WindowsBlePlatformBridge.ConnectAsync",
+                $"写入特征解析完成: found={_writeCharacteristic is not null}");
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ConnectAsync", "准备解析通知特征。");
             _notifyCharacteristic = await ResolveNotifyCharacteristicAsync(_connectedDevice, device.DeviceType);
+            AppDiagnostics.WriteInfo(
+                "WindowsBlePlatformBridge.ConnectAsync",
+                $"通知特征解析完成: found={_notifyCharacteristic is not null}");
             if (_writeCharacteristic is null)
             {
                 _currentStatus = new CoreBluetoothConnectionStatus
@@ -110,8 +127,12 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
     public async Task<CoreBluetoothConnectionStatus> RefreshStatusAsync(CoreBluetoothConnectionStatus currentStatus, CancellationToken cancellationToken = default)
     {
         _currentStatus = currentStatus;
+        AppDiagnostics.WriteInfo(
+            "WindowsBlePlatformBridge.RefreshStatusAsync",
+            $"开始刷新状态: connected={_currentStatus.IsConnected}, device={_currentStatus.Device?.Name ?? "none"}, hasWrite={_writeCharacteristic is not null}");
         if (!_currentStatus.IsConnected || _currentStatus.Device is null || _writeCharacteristic is null)
         {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.RefreshStatusAsync", "刷新已跳过：连接状态不满足。");
             return _currentStatus;
         }
 
@@ -119,11 +140,13 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
         {
             foreach (var queryType in new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05 })
             {
+                AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.RefreshStatusAsync", $"发送 EMS 状态查询包: queryType=0x{queryType:X2}");
                 await WriteAsync(BuildEmsQueryPacket(queryType), cancellationToken);
                 await Task.Delay(40, cancellationToken);
             }
         }
 
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.RefreshStatusAsync", "状态刷新完成。");
         return _currentStatus;
     }
 
@@ -172,47 +195,59 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
         ConcurrentDictionary<string, BluetoothDeviceDescriptor> discovered,
         CancellationToken cancellationToken)
     {
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAdvertisementsAsync", "创建 BluetoothLEAdvertisementWatcher。");
         var watcher = new BluetoothLEAdvertisementWatcher
         {
             ScanningMode = BluetoothLEScanningMode.Active
         };
 
         watcher.Received += OnAdvertisementReceived;
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAdvertisementsAsync", "准备启动蓝牙广播监听。");
         watcher.Start();
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAdvertisementsAsync", "蓝牙广播监听已启动，等待 3 秒采集广告。");
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
         }
         finally
         {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAdvertisementsAsync", "准备停止蓝牙广播监听。");
             watcher.Stop();
             watcher.Received -= OnAdvertisementReceived;
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanAdvertisementsAsync", $"蓝牙广播监听已停止，deviceCount={discovered.Count}");
         }
 
         void OnAdvertisementReceived(BluetoothLEAdvertisementWatcher _, BluetoothLEAdvertisementReceivedEventArgs args)
         {
-            if (!BluetoothAdvertisementDeviceClassifier.TryResolveDeviceType(
-                    args.Advertisement.ServiceUuids,
-                    args.Advertisement.LocalName,
-                    out var deviceType,
-                    out var serviceUuid))
+            try
             {
-                return;
+                if (!BluetoothAdvertisementDeviceClassifier.TryResolveDeviceType(
+                        args.Advertisement.ServiceUuids,
+                        args.Advertisement.LocalName,
+                        out var deviceType,
+                        out var serviceUuid))
+                {
+                    return;
+                }
+
+                var deviceId = args.BluetoothAddress.ToString("X12", CultureInfo.InvariantCulture);
+                var name = string.IsNullOrWhiteSpace(args.Advertisement.LocalName)
+                    ? $"{BuildDeviceTypePrefix(deviceType)}_{deviceId}"
+                    : args.Advertisement.LocalName;
+
+                discovered[deviceId] = new BluetoothDeviceDescriptor
+                {
+                    DeviceId = deviceId,
+                    Name = name,
+                    DeviceType = deviceType,
+                    ProtocolProfile = BluetoothAdvertisementDeviceClassifier.ResolveProtocolProfile(deviceType, name),
+                    ServiceUuid = serviceUuid
+                };
             }
-
-            var deviceId = args.BluetoothAddress.ToString("X12", CultureInfo.InvariantCulture);
-            var name = string.IsNullOrWhiteSpace(args.Advertisement.LocalName)
-                ? $"{BuildDeviceTypePrefix(deviceType)}_{deviceId}"
-                : args.Advertisement.LocalName;
-
-            discovered[deviceId] = new BluetoothDeviceDescriptor
+            catch (Exception ex)
             {
-                DeviceId = deviceId,
-                Name = name,
-                DeviceType = deviceType,
-                ProtocolProfile = BluetoothAdvertisementDeviceClassifier.ResolveProtocolProfile(deviceType, name),
-                ServiceUuid = serviceUuid
-            };
+                AppDiagnostics.WriteException("WindowsBlePlatformBridge.ScanAdvertisementsAsync.Received", ex);
+            }
         }
     }
 
@@ -220,8 +255,11 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
         ConcurrentDictionary<string, BluetoothDeviceDescriptor> discovered,
         CancellationToken cancellationToken)
     {
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanKnownDevicesAsync", "准备创建设备选择器。");
         var selector = BluetoothLEDevice.GetDeviceSelector();
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanKnownDevicesAsync", "准备查询系统已知 BLE 设备。");
         var devices = await DeviceInformation.FindAllAsync(selector).AsTask(cancellationToken);
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ScanKnownDevicesAsync", $"系统已知 BLE 设备查询完成，count={devices.Count}");
         foreach (var device in devices)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -294,13 +332,18 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
     {
         if (ulong.TryParse(deviceId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var bluetoothAddress))
         {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.OpenDeviceAsync", $"准备通过蓝牙地址打开设备: {deviceId}");
             var byAddress = await BluetoothLEDevice.FromBluetoothAddressAsync(bluetoothAddress);
             if (byAddress is not null)
             {
+                AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.OpenDeviceAsync", $"通过蓝牙地址打开设备成功: {deviceId}");
                 return byAddress;
             }
+
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.OpenDeviceAsync", $"通过蓝牙地址打开设备失败，准备回退到设备 Id: {deviceId}");
         }
 
+        AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.OpenDeviceAsync", $"准备通过设备 Id 打开设备: {deviceId}");
         return await BluetoothLEDevice.FromIdAsync(deviceId);
     }
 
@@ -308,12 +351,16 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
     {
         if (deviceType != BluetoothDeviceType.Ems)
         {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ResolveWriteCharacteristicAsync", $"跳过写入特征解析: unsupportedDeviceType={deviceType}");
             return null;
         }
 
         var servicesResult = await device.GetGattServicesForUuidAsync(
             Guid.Parse(BluetoothAdvertisementDeviceClassifier.EmsServiceUuid),
             BluetoothCacheMode.Uncached);
+        AppDiagnostics.WriteInfo(
+            "WindowsBlePlatformBridge.ResolveWriteCharacteristicAsync",
+            $"服务查询完成: status={servicesResult.Status}, serviceCount={servicesResult.Services.Count}");
         if (servicesResult.Status != GattCommunicationStatus.Success)
         {
             return null;
@@ -324,6 +371,9 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
             var characteristicResult = await service.GetCharacteristicsForUuidAsync(
                 Guid.Parse(EmsWriteUuid),
                 BluetoothCacheMode.Uncached);
+            AppDiagnostics.WriteInfo(
+                "WindowsBlePlatformBridge.ResolveWriteCharacteristicAsync",
+                $"写入特征查询完成: status={characteristicResult.Status}, characteristicCount={characteristicResult.Characteristics.Count}");
             if (characteristicResult.Status == GattCommunicationStatus.Success)
             {
                 return characteristicResult.Characteristics.FirstOrDefault();
@@ -337,12 +387,16 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
     {
         if (deviceType != BluetoothDeviceType.Ems)
         {
+            AppDiagnostics.WriteInfo("WindowsBlePlatformBridge.ResolveNotifyCharacteristicAsync", $"跳过通知特征解析: unsupportedDeviceType={deviceType}");
             return null;
         }
 
         var servicesResult = await device.GetGattServicesForUuidAsync(
             Guid.Parse(BluetoothAdvertisementDeviceClassifier.EmsServiceUuid),
             BluetoothCacheMode.Uncached);
+        AppDiagnostics.WriteInfo(
+            "WindowsBlePlatformBridge.ResolveNotifyCharacteristicAsync",
+            $"服务查询完成: status={servicesResult.Status}, serviceCount={servicesResult.Services.Count}");
         if (servicesResult.Status != GattCommunicationStatus.Success)
         {
             return null;
@@ -353,6 +407,9 @@ public sealed class WindowsBlePlatformBridge : IWindowsBlePlatformBridge
             var characteristicResult = await service.GetCharacteristicsForUuidAsync(
                 Guid.Parse(EmsNotifyUuid),
                 BluetoothCacheMode.Uncached);
+            AppDiagnostics.WriteInfo(
+                "WindowsBlePlatformBridge.ResolveNotifyCharacteristicAsync",
+                $"通知特征查询完成: status={characteristicResult.Status}, characteristicCount={characteristicResult.Characteristics.Count}");
             if (characteristicResult.Status == GattCommunicationStatus.Success)
             {
                 return characteristicResult.Characteristics.FirstOrDefault();
