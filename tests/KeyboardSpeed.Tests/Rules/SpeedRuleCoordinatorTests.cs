@@ -35,4 +35,39 @@ public sealed class SpeedRuleCoordinatorTests
         Assert.True(first.ShouldDispatch);
         Assert.True(second.ShouldStop);
     }
+
+    [Fact]
+    public void Coordinator_ShouldRetriggerAfterCooldownWhenStayingWithinSameRange()
+    {
+        var coordinator = new SpeedRuleCoordinator(new SpeedRuleEngine());
+        var rule = new SpeedRangeRule("low", "低速", SpeedMetricType.Kpm, 0, 119.99, "soft-pulse", 600, true, true, true, true);
+        var snapshot = new TypingSpeedSnapshot(60, 12, 50, 10, 1);
+        var now = DateTimeOffset.Parse("2026-05-19T10:00:10+08:00");
+
+        var first = coordinator.Evaluate(snapshot, [rule], now);
+        var second = coordinator.Evaluate(snapshot, [rule], now.AddMilliseconds(500));
+        var third = coordinator.Evaluate(snapshot, [rule], now.AddMilliseconds(600));
+
+        Assert.True(first.ShouldDispatch);
+        Assert.False(second.ShouldDispatch);
+        Assert.True(third.ShouldDispatch);
+        Assert.Equal("soft-pulse", third.WaveformId);
+    }
+
+    [Fact]
+    public void Coordinator_ShouldStopWhenActiveSampleCountDropsToZero()
+    {
+        var coordinator = new SpeedRuleCoordinator(new SpeedRuleEngine());
+        var rule = new SpeedRangeRule("low", "低速", SpeedMetricType.Kpm, 0, 119.99, "soft-pulse", 600, true, true, true, true);
+        var activeSnapshot = new TypingSpeedSnapshot(60, 12, 50, 10, 1);
+        var idleSnapshot = new TypingSpeedSnapshot(0, 0, 0, 0, 0);
+        var now = DateTimeOffset.Parse("2026-05-19T10:00:10+08:00");
+
+        var first = coordinator.Evaluate(activeSnapshot, [rule], now);
+        var second = coordinator.Evaluate(idleSnapshot, [rule], now.AddSeconds(1));
+
+        Assert.True(first.ShouldDispatch);
+        Assert.True(second.ShouldStop);
+        Assert.False(second.ShouldDispatch);
+    }
 }

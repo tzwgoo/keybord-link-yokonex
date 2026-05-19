@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\KeyboardSpeed.Desktop\KeyboardSpeed.Desktop.csproj" />
     <ProjectReference Include="..\..\src\KeyboardSpeed.Bluetooth.Windows\KeyboardSpeed.Bluetooth.Windows.csproj" />
     <ProjectReference Include="..\..\src\KeyboardSpeed.Input.Windows\KeyboardSpeed.Input.Windows.csproj" />
   </ItemGroup>

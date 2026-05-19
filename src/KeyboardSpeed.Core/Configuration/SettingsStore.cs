@@ -27,6 +27,21 @@ public sealed class SettingsStore
         return settings ?? AppSettings.CreateDefault();
     }
 
+    public AppSettings Load()
+    {
+        if (!File.Exists(_filePath))
+        {
+            return AppSettings.CreateDefault();
+        }
+
+        using var stream = File.OpenRead(_filePath);
+        var settings = JsonSerializer.Deserialize(
+            stream,
+            SettingsJsonContext.Default.AppSettings);
+
+        return settings ?? AppSettings.CreateDefault();
+    }
+
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);

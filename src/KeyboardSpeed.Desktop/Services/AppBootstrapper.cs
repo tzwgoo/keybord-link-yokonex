@@ -17,21 +17,28 @@ public sealed class AppBootstrapper : IDisposable
     private readonly IGlobalKeyboardListener _keyboardListener;
     private readonly BleDeviceManager _bleDeviceManager;
     private readonly SpeedRuleCoordinator _speedRuleCoordinator;
+    private readonly WaveformTriggerRouter _waveformTriggerRouter;
     private readonly SettingsStore _settingsStore;
     private readonly DispatcherTimer _snapshotTimer;
     private readonly List<EmsWaveformDefinition> _waveforms;
     private readonly List<SpeedRangeRule> _speedRules;
     private bool _disposed;
+    private WaveformTriggerMode _triggerMode;
+    private string _keypressWaveformId = string.Empty;
+    private bool _idleTriggerEnabled;
+    private int _idleTriggerTimeoutMs;
+    private string _idleWaveformId = string.Empty;
+    private bool _idleTriggerDispatched;
     private string _currentRuleName = "未命中";
     private string _currentWaveformName = "未触发";
 
     public AppBootstrapper()
         : this(
-            new TypingSpeedCalculator(new TypingSpeedOptions()),
-            new GlobalKeyboardListener(),
-            new BleDeviceManager(),
-            new SpeedRuleCoordinator(new SpeedRuleEngine()),
-            new SettingsStore(GetSettingsFilePath()))
+            CreateDefaultTypingSpeedCalculator(),
+            CreateDefaultKeyboardListener(),
+            CreateDefaultBleDeviceManager(),
+            CreateDefaultSpeedRuleCoordinator(),
+            CreateDefaultSettingsStore())
     {
     }
 
@@ -46,14 +53,22 @@ public sealed class AppBootstrapper : IDisposable
         _keyboardListener = keyboardListener ?? throw new ArgumentNullException(nameof(keyboardListener));
         _bleDeviceManager = bleDeviceManager ?? throw new ArgumentNullException(nameof(bleDeviceManager));
         _speedRuleCoordinator = speedRuleCoordinator ?? throw new ArgumentNullException(nameof(speedRuleCoordinator));
+        _waveformTriggerRouter = new WaveformTriggerRouter(_speedRuleCoordinator);
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
-        var settings = _settingsStore.LoadAsync().GetAwaiter().GetResult();
-        _waveforms = settings.Waveforms.Count == 0
-            ? BuiltinWaveforms.CreateDefaults().ToList()
-            : settings.Waveforms.ToList();
-        _speedRules = settings.SpeedRules.Count == 0
-            ? AppSettings.CreateDefault().SpeedRules.ToList()
-            : settings.SpeedRules.ToList();
+        AppDiagnostics.WriteInfo("AppBootstrapper.ctor", "开始读取本地配置。");
+        var settings = _settingsStore.Load();
+        AppDiagnostics.WriteInfo("AppBootstrapper.ctor", $"配置读取完成：rules={settings.SpeedRules.Count}, waveforms={settings.Waveforms.Count}");
+        _waveforms = MergeWaveformsWithBuiltins(settings.Waveforms);
+        var loadedRules = settings.SpeedRules.Count == 0
+            ? AppSettings.CreateDefault().SpeedRules
+            : settings.SpeedRules;
+        _speedRules = SpeedRuleMetricNormalizer.NormalizeToCharactersPerMinute(loadedRules.Select(NormalizeRuntimeRuleBehavior)).ToList();
+        _triggerMode = settings.TriggerMode;
+        _keypressWaveformId = NormalizeKeypressWaveformId(settings.KeypressWaveformId);
+        _idleTriggerEnabled = settings.IdleTriggerEnabled;
+        _idleTriggerTimeoutMs = NormalizeIdleTriggerTimeoutMs(settings.IdleTriggerTimeoutMs);
+        _idleWaveformId = NormalizeIdleWaveformId(settings.IdleWaveformId);
+        AppDiagnostics.WriteInfo("AppBootstrapper.ctor", $"规则归一化完成：rules={_speedRules.Count}, waveforms={_waveforms.Count}");
         _keyboardListener.KeystrokeCaptured += HandleKeystrokeCaptured;
         _bleDeviceManager.StatusChanged += HandleBluetoothStatusChanged;
 
@@ -63,6 +78,7 @@ public sealed class AppBootstrapper : IDisposable
         };
         _snapshotTimer.Tick += HandleSnapshotTimerTick;
         CurrentSnapshot = _typingSpeedCalculator.CreateSnapshot(DateTimeOffset.Now);
+        ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
     }
 
     public event Action<TypingSpeedSnapshot>? SnapshotUpdated;
@@ -86,6 +102,16 @@ public sealed class AppBootstrapper : IDisposable
     public IReadOnlyList<EmsWaveformDefinition> Waveforms => _waveforms;
 
     public IReadOnlyList<SpeedRangeRule> SpeedRules => _speedRules;
+
+    public WaveformTriggerMode TriggerMode => _triggerMode;
+
+    public string KeypressWaveformId => _keypressWaveformId;
+
+    public bool IdleTriggerEnabled => _idleTriggerEnabled;
+
+    public int IdleTriggerTimeoutMs => _idleTriggerTimeoutMs;
+
+    public string IdleWaveformId => _idleWaveformId;
 
     public string CurrentRuleName => _currentRuleName;
 
@@ -139,7 +165,8 @@ public sealed class AppBootstrapper : IDisposable
     public Task<bool> ConnectBluetoothAsync(string deviceId, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        return _bleDeviceManager.ConnectAsync(deviceId, cancellationToken);
+        AppDiagnostics.WriteInfo("AppBootstrapper.ConnectBluetoothAsync", $"开始连接设备: {deviceId}");
+        return ConnectBluetoothCoreAsync(deviceId, cancellationToken);
     }
 
     public Task DisconnectBluetoothAsync(CancellationToken cancellationToken = default)
@@ -212,6 +239,38 @@ public sealed class AppBootstrapper : IDisposable
             _waveforms.AddRange(BuiltinWaveforms.CreateDefaults());
         }
 
+        _keypressWaveformId = NormalizeKeypressWaveformId(_keypressWaveformId);
+        _idleWaveformId = NormalizeIdleWaveformId(_idleWaveformId);
+        ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task UpdateTriggerModeAsync(
+        WaveformTriggerMode mode,
+        string? keypressWaveformId,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        _triggerMode = mode;
+        _keypressWaveformId = NormalizeKeypressWaveformId(keypressWaveformId);
+        ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task UpdateIdleTriggerAsync(
+        bool enabled,
+        int timeoutMs,
+        string? waveformId,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        _idleTriggerEnabled = enabled;
+        _idleTriggerTimeoutMs = NormalizeIdleTriggerTimeoutMs(timeoutMs);
+        _idleWaveformId = NormalizeIdleWaveformId(waveformId);
+        _idleTriggerDispatched = false;
+        ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
         await SaveSettingsAsync(cancellationToken);
     }
 
@@ -237,10 +296,10 @@ public sealed class AppBootstrapper : IDisposable
             minValue,
             maxValue,
             waveformId,
-            cooldownMs,
+            NormalizeRuleCooldownMs(cooldownMs),
             enabled,
             true,
-            false,
+            true,
             stopOnExit);
 
         if (existing is null)
@@ -271,7 +330,9 @@ public sealed class AppBootstrapper : IDisposable
     private void HandleKeystrokeCaptured(object? sender, KeystrokeCapturedEventArgs e)
     {
         LastKeystrokeAt = e.Timestamp;
+        _idleTriggerDispatched = false;
         _typingSpeedCalculator.RecordKeystroke(e.Timestamp);
+        DispatchKeypressWaveformIfNeeded();
         PublishSnapshot(e.Timestamp);
     }
 
@@ -303,13 +364,27 @@ public sealed class AppBootstrapper : IDisposable
     private void PublishSnapshot(DateTimeOffset now)
     {
         CurrentSnapshot = _typingSpeedCalculator.CreateSnapshot(now);
-        ApplySpeedRules(CurrentSnapshot);
+        ApplyTriggerState(CurrentSnapshot, now);
         SnapshotUpdated?.Invoke(CurrentSnapshot);
     }
 
-    private void ApplySpeedRules(TypingSpeedSnapshot snapshot)
+    private void ApplyTriggerState(TypingSpeedSnapshot snapshot, DateTimeOffset now)
     {
-        var evaluation = _speedRuleCoordinator.Evaluate(snapshot, _speedRules, DateTimeOffset.Now);
+        if (_triggerMode == WaveformTriggerMode.AnyKeypress)
+        {
+            ApplyAnyKeypressModeState();
+        }
+        else
+        {
+            ApplySpeedRules(snapshot, now);
+        }
+
+        ApplyIdleTriggerIfNeeded(now);
+    }
+
+    private void ApplySpeedRules(TypingSpeedSnapshot snapshot, DateTimeOffset now)
+    {
+        var evaluation = _waveformTriggerRouter.EvaluateSnapshot(snapshot, _speedRules, _triggerMode, now);
         _currentRuleName = evaluation.ActiveRule?.Name ?? "未命中";
 
         if (evaluation.ShouldStop)
@@ -339,23 +414,190 @@ public sealed class AppBootstrapper : IDisposable
         _ = _bleDeviceManager.PlayWaveformAsync(waveform);
     }
 
+    private void DispatchKeypressWaveformIfNeeded()
+    {
+        var evaluation = _waveformTriggerRouter.EvaluateKeystroke(_triggerMode, _keypressWaveformId);
+        if (!evaluation.ShouldDispatch || string.IsNullOrWhiteSpace(evaluation.WaveformId))
+        {
+            return;
+        }
+
+        var waveform = ResolveWaveformById(evaluation.WaveformId);
+        if (waveform is null)
+        {
+            return;
+        }
+
+        _currentRuleName = "按键即触发";
+        _currentWaveformName = waveform.Name;
+        if (!_bleDeviceManager.CurrentStatus.IsConnected)
+        {
+            return;
+        }
+
+        _ = _bleDeviceManager.PlayWaveformAsync(waveform);
+    }
+
+    private void ApplyAnyKeypressModeState()
+    {
+        _currentRuleName = "按键即触发";
+        _currentWaveformName = ResolveWaveformById(_keypressWaveformId)?.Name ?? "未触发";
+    }
+
+    private void ApplyIdleTriggerIfNeeded(DateTimeOffset now)
+    {
+        if (!_idleTriggerEnabled || !LastKeystrokeAt.HasValue)
+        {
+            return;
+        }
+
+        var idleElapsed = now - LastKeystrokeAt.Value;
+        if (idleElapsed < TimeSpan.FromMilliseconds(_idleTriggerTimeoutMs))
+        {
+            return;
+        }
+
+        var waveform = ResolveWaveformById(_idleWaveformId);
+        if (waveform is null)
+        {
+            return;
+        }
+
+        _currentRuleName = "空闲超时触发";
+        _currentWaveformName = waveform.Name;
+        if (_idleTriggerDispatched || !_bleDeviceManager.CurrentStatus.IsConnected)
+        {
+            return;
+        }
+
+        _idleTriggerDispatched = true;
+        _ = _bleDeviceManager.PlayWaveformAsync(waveform);
+    }
+
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
+    private async Task<bool> ConnectBluetoothCoreAsync(string deviceId, CancellationToken cancellationToken)
+    {
+        var connected = await _bleDeviceManager.ConnectAsync(deviceId, cancellationToken);
+        AppDiagnostics.WriteInfo(
+            "AppBootstrapper.ConnectBluetoothAsync",
+            $"连接结束: deviceId={deviceId}, connected={connected}, lastError={_bleDeviceManager.CurrentStatus.LastError}");
+        return connected;
     }
 
     private async Task SaveSettingsAsync(CancellationToken cancellationToken)
     {
         await _settingsStore.SaveAsync(new AppSettings
         {
+            TriggerMode = _triggerMode,
+            KeypressWaveformId = NormalizeKeypressWaveformId(_keypressWaveformId),
+            IdleTriggerEnabled = _idleTriggerEnabled,
+            IdleTriggerTimeoutMs = NormalizeIdleTriggerTimeoutMs(_idleTriggerTimeoutMs),
+            IdleWaveformId = NormalizeIdleWaveformId(_idleWaveformId),
             SpeedRules = _speedRules.ToList(),
             Waveforms = _waveforms.ToList()
         }, cancellationToken);
+    }
+
+    private EmsWaveformDefinition? ResolveWaveformById(string? waveformId)
+    {
+        var waveform = _waveforms.FirstOrDefault(item => string.Equals(item.Id, waveformId, StringComparison.OrdinalIgnoreCase));
+        return waveform ?? _waveforms.FirstOrDefault();
+    }
+
+    private string NormalizeKeypressWaveformId(string? waveformId)
+    {
+        return ResolveWaveformById(waveformId)?.Id ?? string.Empty;
+    }
+
+    private string NormalizeIdleWaveformId(string? waveformId)
+    {
+        var resolvedWaveformId = string.Equals(waveformId, "heartbeat", StringComparison.OrdinalIgnoreCase)
+            ? AppSettings.DefaultIdleReminderWaveformId
+            : waveformId;
+
+        return ResolveWaveformById(resolvedWaveformId ?? AppSettings.DefaultIdleReminderWaveformId)?.Id ?? string.Empty;
+    }
+
+    private static int NormalizeIdleTriggerTimeoutMs(int timeoutMs)
+    {
+        return timeoutMs > 0 ? timeoutMs : AppSettings.DefaultIdleTriggerTimeoutMs;
+    }
+
+    private static SpeedRangeRule NormalizeRuntimeRuleBehavior(SpeedRangeRule rule)
+    {
+        return rule with
+        {
+            CooldownMs = NormalizeRuleCooldownMs(rule.CooldownMs),
+            TriggerOnEnter = true,
+            RepeatWithinRange = true
+        };
+    }
+
+    private static int NormalizeRuleCooldownMs(int cooldownMs)
+    {
+        return cooldownMs > 0
+            ? Math.Min(cooldownMs, AppSettings.DefaultRuleRepeatCooldownMs)
+            : AppSettings.DefaultRuleRepeatCooldownMs;
     }
 
     private static string GetSettingsFilePath()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         return Path.Combine(appData, "KeyboardSpeed-YOKONEX", "app-settings.json");
+    }
+
+    private static List<EmsWaveformDefinition> MergeWaveformsWithBuiltins(IReadOnlyList<EmsWaveformDefinition> savedWaveforms)
+    {
+        var mergedWaveforms = savedWaveforms.Count == 0
+            ? []
+            : savedWaveforms.ToList();
+
+        var existingIds = new HashSet<string>(
+            mergedWaveforms.Select(item => item.Id),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var builtinWaveform in BuiltinWaveforms.CreateDefaults())
+        {
+            if (existingIds.Add(builtinWaveform.Id))
+            {
+                mergedWaveforms.Add(builtinWaveform);
+            }
+        }
+
+        return mergedWaveforms;
+    }
+
+    private static TypingSpeedCalculator CreateDefaultTypingSpeedCalculator()
+    {
+        AppDiagnostics.WriteInfo("AppBootstrapper.CreateDefaults", "创建 TypingSpeedCalculator。");
+        return new TypingSpeedCalculator(new TypingSpeedOptions());
+    }
+
+    private static IGlobalKeyboardListener CreateDefaultKeyboardListener()
+    {
+        AppDiagnostics.WriteInfo("AppBootstrapper.CreateDefaults", "创建 GlobalKeyboardListener。");
+        return new GlobalKeyboardListener();
+    }
+
+    private static BleDeviceManager CreateDefaultBleDeviceManager()
+    {
+        AppDiagnostics.WriteInfo("AppBootstrapper.CreateDefaults", "创建 BleDeviceManager。");
+        return new BleDeviceManager();
+    }
+
+    private static SpeedRuleCoordinator CreateDefaultSpeedRuleCoordinator()
+    {
+        AppDiagnostics.WriteInfo("AppBootstrapper.CreateDefaults", "创建 SpeedRuleCoordinator。");
+        return new SpeedRuleCoordinator(new SpeedRuleEngine());
+    }
+
+    private static SettingsStore CreateDefaultSettingsStore()
+    {
+        AppDiagnostics.WriteInfo("AppBootstrapper.CreateDefaults", "创建 SettingsStore。");
+        return new SettingsStore(GetSettingsFilePath());
     }
 }

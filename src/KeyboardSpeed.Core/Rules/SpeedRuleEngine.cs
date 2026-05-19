@@ -18,10 +18,14 @@ public sealed class SpeedRuleEngine
 
     private static bool IsInRange(TypingSpeedSnapshot snapshot, SpeedRangeRule rule)
     {
-        var value = rule.MetricType == SpeedMetricType.Wpm
-            ? snapshot.RealtimeWpm
-            : snapshot.RealtimeKpm;
+        if (snapshot.ActiveSampleCount <= 0)
+        {
+            return false;
+        }
 
-        return value >= rule.MinValue && value <= rule.MaxValue;
+        var normalizedRule = SpeedRuleMetricNormalizer.NormalizeToCharactersPerMinute(rule);
+        var value = snapshot.RealtimeKpm;
+
+        return value >= normalizedRule.MinValue && value <= normalizedRule.MaxValue;
     }
 }

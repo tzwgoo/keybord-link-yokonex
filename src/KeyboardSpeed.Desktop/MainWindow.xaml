@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Keyboard Speed YOKONEX"
+        Icon="Assets/yokonex-logo.png"
         Height="860"
         Width="1440"
         MinHeight="760"
@@ -20,6 +21,7 @@
         <SolidColorBrush x:Key="BorderBrushSoft" Color="#1B2944" />
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F8FAFC" />
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A9B8D3" />
+        <SolidColorBrush x:Key="InputTextBrush" Color="#0B1527" />
         <SolidColorBrush x:Key="AccentBrush" Color="#4FD1C5" />
         <SolidColorBrush x:Key="AccentWarmBrush" Color="#F59E0B" />
         <LinearGradientBrush x:Key="HeroBrush" StartPoint="0,0" EndPoint="1,1">
@@ -98,13 +100,30 @@
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource InputTextBrush}" />
             <Setter Property="Background" Value="#0B1527" />
             <Setter Property="BorderBrush" Value="#334768" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Height" Value="38" />
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="#0B1527" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#17365D" />
+                    <Setter Property="Foreground" Value="{StaticResource InputTextBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#23406A" />
+                    <Setter Property="Foreground" Value="{StaticResource InputTextBrush}" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="CheckBox">
@@ -123,8 +142,10 @@
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="20,12" />
-            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Padding" Value="18,10" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+            <Setter Property="MinWidth" Value="72" />
+            <Setter Property="Height" Value="48" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
@@ -172,20 +193,35 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel>
-                    <TextBlock FontSize="14"
-                               Foreground="#7DD3FC"
-                               Text="KEYBOARD SPEED · BLE CONTROL STUDIO" />
-                    <TextBlock Margin="0,10,0,0"
-                               FontSize="32"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               Text="键盘测速与波形联动工作台" />
-                    <TextBlock Margin="0,10,0,0"
-                               FontSize="14"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               Text="把全局打字速度、蓝牙 EMS 设备控制、波形编辑和规则绑定放进同一个现代化桌面控制台。" />
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="72" />
+                        <ColumnDefinition Width="18" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="72"
+                            Height="72"
+                            Background="#F8FAFC"
+                            CornerRadius="22"
+                            Padding="10"
+                            VerticalAlignment="Center">
+                        <Image Source="Assets/yokonex-logo.png"
+                               Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel Grid.Column="2"
+                                VerticalAlignment="Center">
+                        <TextBlock FontSize="14"
+                                   Foreground="#7DD3FC"
+                                   Text="YOKONEX · BLE CONTROL STUDIO" />
+                        <TextBlock Margin="0,10,0,0"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Text="键盘测速与波形联动工作台" />
+                    </StackPanel>
+                </Grid>
 
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
@@ -261,8 +297,8 @@
                                     <StackPanel>
                                         <TextBlock FontSize="12"
                                                    Foreground="#BFDBFE"
-                                                   Text="KPM" />
-                                        <TextBlock x:Name="KpmText"
+                                                   Text="键/分钟" />
+                                        <TextBlock x:Name="CpmText"
                                                    Margin="0,10,0,0"
                                                    FontSize="42"
                                                    FontWeight="Bold"
@@ -280,8 +316,8 @@
                                     <StackPanel>
                                         <TextBlock FontSize="12"
                                                    Foreground="#CFFAFE"
-                                                   Text="WPM" />
-                                        <TextBlock x:Name="WpmText"
+                                                   Text="30 秒趋势" />
+                                        <TextBlock x:Name="TrendHeroText"
                                                    Margin="0,10,0,0"
                                                    FontSize="42"
                                                    FontWeight="Bold"
@@ -330,7 +366,7 @@
                                         Margin="8,0,0,8">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource CaptionStyle}"
-                                                   Text="30 秒趋势 KPM" />
+                                                   Text="30 秒趋势键/分钟" />
                                         <TextBlock x:Name="TrendText"
                                                    Margin="0,8,0,0"
                                                    FontSize="24"
@@ -573,80 +609,11 @@
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    Text="工作区" />
-                        <TextBlock Margin="0,8,0,0"
-                                   FontSize="13"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   Text="按主题拆分设备、波形和规则操作，减少在单个长页面来回滚动。" />
                     </StackPanel>
 
                     <TabControl Grid.Row="2">
-                        <TabItem Header="总览">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel Margin="0,18,0,0">
-                                    <Border Style="{StaticResource CardBorderStyle}">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1.3*" />
-                                                <ColumnDefinition Width="18" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <StackPanel>
-                                                <TextBlock Style="{StaticResource SectionTitleStyle}"
-                                                           Text="当前联动状态" />
-                                                <TextBlock Margin="0,14,0,0"
-                                                           FontSize="14"
-                                                           LineHeight="24"
-                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                           Text="左侧实时展示打字速度和蓝牙联动快照；右侧三个标签页分别负责设备接入、波形脚本、速度事件规则，让配置路径更清楚。" />
-                                                <Border Margin="0,18,0,0"
-                                                        Background="#0B1527"
-                                                        BorderBrush="#23314B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="18"
-                                                        Padding="16">
-                                                    <StackPanel>
-                                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="推荐工作流" />
-                                                        <TextBlock Margin="0,10,0,0"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                                   Text="1. 在“设备”里扫描并连接 EMS 设备。" />
-                                                        <TextBlock Margin="0,6,0,0"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                                   Text="2. 在“波形”里编写或试播自定义脚本。" />
-                                                        <TextBlock Margin="0,6,0,0"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                                   Text="3. 在“规则”里设定打字速度区间与波形绑定。" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </StackPanel>
-
-                                            <Border Grid.Column="2"
-                                                    Background="#0B1527"
-                                                    BorderBrush="#23314B"
-                                                    BorderThickness="1"
-                                                    CornerRadius="18"
-                                                    Padding="18">
-                                                <StackPanel>
-                                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="状态摘要" />
-                                                    <TextBlock Margin="0,12,0,0"
-                                                               FontSize="18"
-                                                               FontWeight="SemiBold"
-                                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                                               Text="当前系统已具备输入监听、设备控制、自定义波形与规则持久化能力" />
-                                                    <TextBlock Margin="0,12,0,0"
-                                                               FontSize="13"
-                                                               LineHeight="22"
-                                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                                               Text="如果设备暂未连接，规则命中仍会更新当前波形状态；连上设备后会自动把命中的波形下发到 EMS 设备。" />
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </TabItem>
-
                         <TabItem Header="设备">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <Grid Margin="0,18,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="340" />
@@ -658,13 +625,8 @@
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                    Text="设备接入" />
-                                        <TextBlock Margin="0,10,0,0"
-                                                   FontSize="13"
-                                                   LineHeight="22"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   Text="把扫描、连接和基础控制放在左侧，右边专门展示设备反馈，减少状态和操作互相挤压。" />
 
-                                        <TextBlock Margin="0,24,0,0"
+                                        <TextBlock Margin="0,18,0,0"
                                                    Style="{StaticResource CaptionStyle}"
                                                    Text="可用设备" />
                                         <ComboBox x:Name="DevicesComboBox"
@@ -710,11 +672,6 @@
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                        Text="设备反馈面板" />
-                                            <TextBlock Margin="0,10,0,0"
-                                                       FontSize="13"
-                                                       LineHeight="22"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       Text="把遥测拆成状态摘要和详细字段，连接后更容易判断到底是设备没响应，还是只是一项数据没回来。" />
                                         </StackPanel>
 
                                         <UniformGrid Grid.Row="2" Columns="2">
@@ -774,9 +731,11 @@
                                     </Grid>
                                 </Border>
                             </Grid>
+                            </ScrollViewer>
                         </TabItem>
 
                         <TabItem Header="波形">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <Grid Margin="0,18,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="320" />
@@ -788,13 +747,8 @@
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                    Text="波形库" />
-                                        <TextBlock Margin="0,10,0,0"
-                                                   FontSize="13"
-                                                   LineHeight="22"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   Text="左侧只放选择、模板和动作，右侧专门编辑内容，让当前正在调整的波形更聚焦。" />
 
-                                        <TextBlock Margin="0,24,0,0"
+                                        <TextBlock Margin="0,18,0,0"
                                                    Style="{StaticResource CaptionStyle}"
                                                    Text="选择波形" />
                                         <ComboBox x:Name="WaveformsComboBox"
@@ -802,26 +756,8 @@
                                                   SelectionChanged="OnWaveformSelectionChanged"
                                                   DisplayMemberPath="Name" />
 
-                                        <TextBlock Margin="0,18,0,0"
-                                                   Style="{StaticResource CaptionStyle}"
-                                                   Text="脚本模板" />
-                                        <ComboBox x:Name="WaveformTemplateComboBox"
-                                                  Margin="0,8,0,0"
-                                                  SelectionChanged="OnWaveformTemplateSelectionChanged"
-                                                  DisplayMemberPath="Name" />
-                                        <TextBlock x:Name="WaveformTemplateDescriptionText"
-                                                   Margin="0,10,0,0"
-                                                   FontSize="12"
-                                                   LineHeight="20"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   TextWrapping="Wrap"
-                                                   Text="模板会自动填入推荐波形名和脚本。" />
-
-                                        <Button Margin="0,18,0,0"
-                                                Click="OnApplyWaveformTemplateClicked"
-                                                Content="应用模板到编辑器" />
                                         <Button x:Name="PlayWaveformButton"
-                                                Margin="0,12,0,0"
+                                                Margin="0,18,0,0"
                                                 Click="OnPlayWaveformClicked"
                                                 Content="试播选中波形" />
 
@@ -872,17 +808,6 @@
                                                 <TextBox x:Name="WaveformNameTextBox"
                                                          Margin="0,8,0,0"
                                                          Height="42" />
-                                                <Border Margin="0,18,0,0"
-                                                        Background="#0B1527"
-                                                        BorderBrush="#23314B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="16"
-                                                        Padding="14">
-                                                    <TextBlock FontSize="12"
-                                                               LineHeight="22"
-                                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                                               Text="推荐流程：先选模板，再在下方微调脚本或步骤。这样能避免一开始就面对太多参数。" />
-                                                </Border>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -898,29 +823,13 @@
                                             <StackPanel>
                                                 <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                            Text="脚本编辑" />
-                                                <TextBlock Margin="0,10,0,0"
-                                                           FontSize="12"
-                                                           LineHeight="20"
-                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                           Text="保留脚本入口，适合批量粘贴或精确修改。" />
                                                 <TextBox x:Name="WaveformScriptTextBox"
-                                                         Margin="0,16,0,0"
+                                                         Margin="0,14,0,0"
                                                          AcceptsReturn="True"
                                                          MinHeight="420"
                                                          TextChanged="OnWaveformScriptTextChanged"
                                                          TextWrapping="NoWrap"
                                                          VerticalScrollBarVisibility="Auto" />
-                                                <Border Margin="0,16,0,0"
-                                                        Background="#0B1527"
-                                                        BorderBrush="#23314B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="16"
-                                                        Padding="14">
-                                                    <TextBlock FontSize="12"
-                                                               LineHeight="20"
-                                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                                               Text="脚本格式：每行 duration,aStrength,aMode,bStrength,bMode,motorState。建议先改步骤卡片，再用脚本做最终精修。" />
-                                                </Border>
                                             </StackPanel>
                                         </Border>
 
@@ -940,11 +849,6 @@
                                                     <StackPanel>
                                                         <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                                    Text="步骤可视化编辑器" />
-                                                        <TextBlock Margin="0,10,0,0"
-                                                                   FontSize="12"
-                                                                   LineHeight="20"
-                                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                                   Text="每一步拆成独立卡片，参数和顺序分开操作，避免所有内容挤在同一列里。" />
                                                     </StackPanel>
                                                     <Button Grid.Column="1"
                                                             Click="OnAddWaveformStepClicked"
@@ -966,9 +870,11 @@
                                     </Grid>
                                 </Grid>
                             </Grid>
+                            </ScrollViewer>
                         </TabItem>
 
                         <TabItem Header="规则">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <Grid Margin="0,18,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="320" />
@@ -980,49 +886,87 @@
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                    Text="规则库" />
-                                        <TextBlock Margin="0,10,0,0"
-                                                   FontSize="13"
-                                                   LineHeight="22"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   Text="把规则选择和预设放在左边，右边只负责编辑当前这条规则，阅读路径会清楚很多。" />
-
-                                        <TextBlock Margin="0,24,0,0"
-                                                   Style="{StaticResource CaptionStyle}"
-                                                   Text="选择规则" />
-                                        <ComboBox x:Name="RulesComboBox"
-                                                  Margin="0,8,0,0"
-                                                  SelectionChanged="OnRuleSelectionChanged"
-                                                  DisplayMemberPath="Name" />
 
                                         <TextBlock Margin="0,18,0,0"
                                                    Style="{StaticResource CaptionStyle}"
-                                                   Text="规则预设" />
-                                        <ComboBox x:Name="RulePresetComboBox"
+                                                   Text="触发模式" />
+                                        <ComboBox x:Name="TriggerModeComboBox"
                                                   Margin="0,8,0,0"
-                                                  SelectionChanged="OnRulePresetSelectionChanged"
+                                                  SelectionChanged="OnTriggerModeSelectionChanged"
                                                   DisplayMemberPath="Name" />
-                                        <TextBlock x:Name="RulePresetDescriptionText"
-                                                   Margin="0,10,0,0"
-                                                   FontSize="12"
-                                                   LineHeight="20"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   TextWrapping="Wrap"
-                                                   Text="预设会填充推荐速度区间、冷却时间和目标波形。" />
 
-                                        <Button Margin="0,18,0,0"
-                                                Click="OnApplyRulePresetClicked"
-                                                Content="应用预设到表单" />
+                                        <Border x:Name="KeypressModePanel"
+                                                Margin="0,18,0,0"
+                                                Background="#0B1527"
+                                                BorderBrush="#23314B"
+                                                BorderThickness="1"
+                                                CornerRadius="18"
+                                                Padding="16">
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource CaptionStyle}"
+                                                           Text="按键波形" />
+                                                <ComboBox x:Name="KeypressWaveformComboBox"
+                                                          Margin="0,8,0,0"
+                                                          SelectionChanged="OnKeypressWaveformSelectionChanged"
+                                                          DisplayMemberPath="Name" />
+                                            </StackPanel>
+                                        </Border>
 
-                                        <UniformGrid Margin="0,22,0,0" Columns="1">
-                                            <Button Margin="0,0,0,10"
-                                                    Click="OnNewRuleClicked"
-                                                    Content="新建规则" />
-                                            <Button Margin="0,0,0,10"
-                                                    Click="OnSaveRuleClicked"
-                                                    Content="保存规则" />
-                                            <Button Click="OnDeleteRuleClicked"
-                                                    Content="删除规则" />
-                                        </UniformGrid>
+                                        <Border x:Name="IdleTriggerPanel"
+                                                Margin="0,18,0,0"
+                                                Background="#0B1527"
+                                                BorderBrush="#23314B"
+                                                BorderThickness="1"
+                                                CornerRadius="18"
+                                                Padding="16">
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource CaptionStyle}"
+                                                           Text="空闲触发" />
+                                                <CheckBox x:Name="IdleTriggerEnabledCheckBox"
+                                                          Margin="0,12,0,0"
+                                                          Checked="OnIdleTriggerToggleChanged"
+                                                          Unchecked="OnIdleTriggerToggleChanged"
+                                                          Content="启用超时未输入自动触发" />
+
+                                                <TextBlock Margin="0,16,0,0"
+                                                           Style="{StaticResource CaptionStyle}"
+                                                           Text="空闲阈值（毫秒）" />
+                                                <TextBox x:Name="IdleTriggerTimeoutTextBox"
+                                                         Margin="0,8,0,0"
+                                                         Height="42"
+                                                         LostFocus="OnIdleTriggerTimeoutLostFocus"
+                                                         KeyDown="OnIdleTriggerTimeoutKeyDown" />
+
+                                                <TextBlock Margin="0,16,0,0"
+                                                           Style="{StaticResource CaptionStyle}"
+                                                           Text="空闲波形" />
+                                                <ComboBox x:Name="IdleWaveformComboBox"
+                                                          Margin="0,8,0,0"
+                                                          SelectionChanged="OnIdleWaveformSelectionChanged"
+                                                          DisplayMemberPath="Name" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <StackPanel x:Name="SpeedRuleListPanel">
+                                            <TextBlock Margin="0,18,0,0"
+                                                       Style="{StaticResource CaptionStyle}"
+                                                       Text="选择规则" />
+                                            <ComboBox x:Name="RulesComboBox"
+                                                      Margin="0,8,0,0"
+                                                      SelectionChanged="OnRuleSelectionChanged"
+                                                      DisplayMemberPath="Name" />
+
+                                            <UniformGrid Margin="0,22,0,0" Columns="1">
+                                                <Button Margin="0,0,0,10"
+                                                        Click="OnNewRuleClicked"
+                                                        Content="新建规则" />
+                                                <Button Margin="0,0,0,10"
+                                                        Click="OnSaveRuleClicked"
+                                                        Content="保存规则" />
+                                                <Button Click="OnDeleteRuleClicked"
+                                                        Content="删除规则" />
+                                            </UniformGrid>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -1037,84 +981,130 @@
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                        Text="规则编辑区" />
-                                            <TextBlock Margin="0,10,0,0"
-                                                       FontSize="13"
-                                                       LineHeight="22"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       Text="一条规则只做一件事：定义输入速度区间，并绑定对应波形。表单按阅读顺序排开，减少来回跳视线。" />
                                         </StackPanel>
 
-                                        <Grid Grid.Row="2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1.05*" />
-                                                <ColumnDefinition Width="20" />
-                                                <ColumnDefinition Width="0.95*" />
-                                            </Grid.ColumnDefinitions>
+                                        <Grid x:Name="SpeedRuleEditorPanel" Grid.Row="2">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="20" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
 
-                                            <StackPanel>
-                                                <TextBlock Style="{StaticResource CaptionStyle}" Text="规则名称" />
-                                                <TextBox x:Name="RuleNameTextBox"
-                                                         Margin="0,8,0,0"
-                                                         Height="42" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="1.05*" />
+                                                    <ColumnDefinition Width="20" />
+                                                    <ColumnDefinition Width="0.95*" />
+                                                </Grid.ColumnDefinitions>
 
-                                                <TextBlock Margin="0,20,0,0"
-                                                           Style="{StaticResource CaptionStyle}"
-                                                           Text="KPM 区间" />
-                                                <UniformGrid Margin="0,8,0,0" Columns="2">
-                                                    <TextBox x:Name="RuleMinTextBox"
-                                                             Margin="0,0,8,0"
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="规则名称" />
+                                                    <TextBox x:Name="RuleNameTextBox"
+                                                             Margin="0,8,0,0"
                                                              Height="42" />
-                                                    <TextBox x:Name="RuleMaxTextBox"
-                                                             Margin="8,0,0,0"
+
+                                                    <TextBlock Margin="0,20,0,0"
+                                                               Style="{StaticResource CaptionStyle}"
+                                                               Text="键/分钟区间" />
+                                                    <UniformGrid Margin="0,8,0,0" Columns="2">
+                                                        <TextBox x:Name="RuleMinTextBox"
+                                                                 Margin="0,0,8,0"
+                                                                 Height="42" />
+                                                        <TextBox x:Name="RuleMaxTextBox"
+                                                                 Margin="8,0,0,0"
+                                                                 Height="42" />
+                                                    </UniformGrid>
+
+                                                    <TextBlock Margin="0,20,0,0"
+                                                               Style="{StaticResource CaptionStyle}"
+                                                               Text="绑定波形" />
+                                                    <ComboBox x:Name="RuleWaveformComboBox"
+                                                              Margin="0,8,0,0"
+                                                              SelectionChanged="OnRuleWaveformSelectionChanged"
+                                                              DisplayMemberPath="Name" />
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="冷却时间（毫秒）" />
+                                                    <TextBox x:Name="RuleCooldownTextBox"
+                                                             Margin="0,8,0,0"
                                                              Height="42" />
-                                                </UniformGrid>
 
-                                                <TextBlock Margin="0,20,0,0"
-                                                           Style="{StaticResource CaptionStyle}"
-                                                           Text="绑定波形" />
-                                                <ComboBox x:Name="RuleWaveformComboBox"
-                                                          Margin="0,8,0,0"
-                                                          DisplayMemberPath="Name" />
-                                            </StackPanel>
+                                                    <Border Margin="0,20,0,0"
+                                                            Background="#0B1527"
+                                                            BorderBrush="#23314B"
+                                                            BorderThickness="1"
+                                                            CornerRadius="18"
+                                                            Padding="16">
+                                                        <StackPanel>
+                                                            <TextBlock Style="{StaticResource CaptionStyle}" Text="规则行为" />
+                                                            <CheckBox x:Name="RuleEnabledCheckBox"
+                                                                      Margin="0,12,0,0"
+                                                                      Content="启用规则" />
+                                                            <CheckBox x:Name="RuleStopOnExitCheckBox"
+                                                                      Content="离开区间时发送停止包" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
 
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Style="{StaticResource CaptionStyle}" Text="冷却时间（毫秒）" />
-                                                <TextBox x:Name="RuleCooldownTextBox"
-                                                         Margin="0,8,0,0"
-                                                         Height="42" />
+                                            <Border Grid.Row="2"
+                                                    Background="#0B1527"
+                                                    BorderBrush="#23314B"
+                                                    BorderThickness="1"
+                                                    CornerRadius="18"
+                                                    Padding="18">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1.15*" />
+                                                        <ColumnDefinition Width="20" />
+                                                        <ColumnDefinition Width="0.85*" />
+                                                    </Grid.ColumnDefinitions>
 
-                                                <Border Margin="0,20,0,0"
-                                                        Background="#0B1527"
-                                                        BorderBrush="#23314B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="18"
-                                                        Padding="16">
                                                     <StackPanel>
-                                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="规则行为" />
-                                                        <CheckBox x:Name="RuleEnabledCheckBox"
-                                                                  Margin="0,12,0,0"
-                                                                  Content="启用规则" />
-                                                        <CheckBox x:Name="RuleStopOnExitCheckBox"
-                                                                  Content="离开区间时发送停止包" />
+                                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="波形预览" />
+                                                        <Canvas x:Name="RuleWaveformPreviewCanvas"
+                                                                Margin="0,12,0,0"
+                                                                Height="170"
+                                                                Background="#091220" />
                                                     </StackPanel>
-                                                </Border>
 
-                                                <Border Margin="0,20,0,0"
-                                                        Background="#0B1527"
-                                                        BorderBrush="#23314B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="18"
-                                                        Padding="16">
-                                                    <TextBlock FontSize="12"
-                                                               LineHeight="22"
-                                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                                               Text="建议先从预设开始，再根据你的打字习惯微调区间边界和冷却时间。这样比完全从空白表单开始更不容易出错。" />
-                                                </Border>
-                                            </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="A 通道最大强度" />
+                                                        <TextBlock x:Name="RuleWaveformPeakAText"
+                                                                   Margin="0,8,0,0"
+                                                                   FontSize="24"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                                   Text="0%" />
+
+                                                        <TextBlock Margin="0,20,0,0"
+                                                                   Style="{StaticResource CaptionStyle}"
+                                                                   Text="B 通道最大强度" />
+                                                        <TextBlock x:Name="RuleWaveformPeakBText"
+                                                                   Margin="0,8,0,0"
+                                                                   FontSize="24"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                                   Text="0%" />
+
+                                                        <TextBlock Margin="0,20,0,0"
+                                                                   Style="{StaticResource CaptionStyle}"
+                                                                   Text="波形总时长" />
+                                                        <TextBlock x:Name="RuleWaveformDurationText"
+                                                                   Margin="0,8,0,0"
+                                                                   FontSize="18"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#A5F3FC"
+                                                                   Text="0 ms" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
                                         </Grid>
                                     </Grid>
                                 </Border>
                             </Grid>
+                            </ScrollViewer>
                         </TabItem>
                     </TabControl>
                 </Grid>

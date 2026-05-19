@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using KeyboardSpeed.Core.Bluetooth;
@@ -13,15 +14,29 @@ namespace KeyboardSpeed.Desktop;
 
 public partial class MainWindow : Window
 {
+    private const double WaveformPreviewPadding = WaveformDragEditorLogic.DefaultPadding;
+    private static readonly IReadOnlyList<TriggerModeOption> TriggerModeOptions =
+    [
+        new TriggerModeOption(WaveformTriggerMode.SpeedRules, "键速触发"),
+        new TriggerModeOption(WaveformTriggerMode.AnyKeypress, "按键即触发")
+    ];
     private readonly AppBootstrapper _bootstrapper;
     private bool _isBusy;
     private bool _isUpdatingWaveformEditor;
+    private bool _isUpdatingTriggerModeEditor;
+    private IReadOnlyList<WaveformDragHandle> _waveformDragHandles = Array.Empty<WaveformDragHandle>();
+    private WaveformDragSession? _activeWaveformDrag;
 
     public MainWindow(AppBootstrapper bootstrapper)
     {
         _bootstrapper = bootstrapper ?? throw new ArgumentNullException(nameof(bootstrapper));
         InitializeComponent();
         WaveformPreviewCanvas.SizeChanged += (_, _) => RenderWaveformPreviewFromEditor();
+        RuleWaveformPreviewCanvas.SizeChanged += (_, _) => RefreshRuleWaveformPreview();
+        WaveformPreviewCanvas.MouseLeftButtonDown += OnWaveformPreviewMouseLeftButtonDown;
+        WaveformPreviewCanvas.MouseMove += OnWaveformPreviewMouseMove;
+        WaveformPreviewCanvas.MouseLeftButtonUp += OnWaveformPreviewMouseLeftButtonUp;
+        WaveformPreviewCanvas.LostMouseCapture += OnWaveformPreviewLostMouseCapture;
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -30,14 +45,14 @@ public partial class MainWindow : Window
     {
         _bootstrapper.SnapshotUpdated += HandleSnapshotUpdated;
         _bootstrapper.BluetoothStatusUpdated += HandleBluetoothStatusUpdated;
+        TriggerModeComboBox.ItemsSource = TriggerModeOptions;
         ApplyListeningState();
         ApplySnapshot(_bootstrapper.CurrentSnapshot);
         ApplyBluetoothStatus(_bootstrapper.BluetoothStatus);
         RefreshDeviceList();
-        RefreshWaveformTemplateList();
         RefreshWaveformList();
-        RefreshRulePresetList();
         RefreshRuleList();
+        ApplyTriggerModeEditor();
         RefreshOverviewPanels();
         UpdateRuleState();
     }
@@ -65,8 +80,8 @@ public partial class MainWindow : Window
 
     private void ApplySnapshot(TypingSpeedSnapshot snapshot)
     {
-        KpmText.Text = snapshot.RealtimeKpm.ToString("0.0");
-        WpmText.Text = snapshot.RealtimeWpm.ToString("0.0");
+        CpmText.Text = snapshot.RealtimeKpm.ToString("0.0");
+        TrendHeroText.Text = snapshot.TrendKpm.ToString("0.0");
         SamplesText.Text = snapshot.ActiveSampleCount.ToString();
         TrendText.Text = snapshot.TrendKpm.ToString("0.0");
         LastKeyText.Text = _bootstrapper.LastKeystrokeAt?.ToLocalTime().ToString("HH:mm:ss") ?? "--:--:--";
@@ -114,7 +129,13 @@ public partial class MainWindow : Window
         var waveforms = _bootstrapper.Waveforms.ToList();
         WaveformsComboBox.ItemsSource = waveforms;
         RuleWaveformComboBox.ItemsSource = waveforms;
+        KeypressWaveformComboBox.ItemsSource = waveforms;
+        IdleWaveformComboBox.ItemsSource = waveforms;
         WaveformsComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == selectedWaveformId)
+            ?? waveforms.FirstOrDefault();
+        KeypressWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == _bootstrapper.KeypressWaveformId)
+            ?? waveforms.FirstOrDefault();
+        IdleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == _bootstrapper.IdleWaveformId)
             ?? waveforms.FirstOrDefault();
         ApplyWaveformEditor(WaveformsComboBox.SelectedItem as EmsWaveformDefinition);
         RefreshOverviewPanels();
@@ -129,22 +150,6 @@ public partial class MainWindow : Window
             ?? rules.FirstOrDefault();
         ApplyRuleEditor(RulesComboBox.SelectedItem as SpeedRangeRule);
         RefreshOverviewPanels();
-    }
-
-    private void RefreshWaveformTemplateList()
-    {
-        var templates = BuiltinWaveformTemplates.CreateDefaults().ToList();
-        WaveformTemplateComboBox.ItemsSource = templates;
-        WaveformTemplateComboBox.SelectedItem = templates.FirstOrDefault();
-        ApplyWaveformTemplateDescription(WaveformTemplateComboBox.SelectedItem as WaveformScriptTemplate);
-    }
-
-    private void RefreshRulePresetList()
-    {
-        var presets = BuiltinSpeedRulePresets.CreateDefaults().ToList();
-        RulePresetComboBox.ItemsSource = presets;
-        RulePresetComboBox.SelectedItem = presets.FirstOrDefault();
-        ApplyRulePresetDescription(RulePresetComboBox.SelectedItem as SpeedRulePreset);
     }
 
     private void UpdateRuleState()
@@ -211,6 +216,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        AppDiagnostics.WriteInfo("MainWindow.OnConnectClicked", $"用户请求连接设备: {option.DeviceId}");
         await ExecuteBusyActionAsync(() => _bootstrapper.ConnectBluetoothAsync(option.DeviceId));
     }
 
@@ -242,36 +248,56 @@ public partial class MainWindow : Window
         ApplyWaveformEditor(waveform);
     }
 
-    private void OnWaveformTemplateSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-    {
-        ApplyWaveformTemplateDescription(WaveformTemplateComboBox.SelectedItem as WaveformScriptTemplate);
-    }
-
     private void OnRuleSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         ApplyRuleEditor(RulesComboBox.SelectedItem as SpeedRangeRule);
     }
 
-    private void OnRulePresetSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private void OnRuleWaveformSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        ApplyRulePresetDescription(RulePresetComboBox.SelectedItem as SpeedRulePreset);
+        RefreshRuleWaveformPreview();
+    }
+
+    private void OnTriggerModeSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        UpdateTriggerModeUi();
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
+    private void OnKeypressWaveformSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
+    private void OnIdleTriggerToggleChanged(object sender, RoutedEventArgs e)
+    {
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
+    private void OnIdleWaveformSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
+    private void OnIdleTriggerTimeoutLostFocus(object sender, RoutedEventArgs e)
+    {
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
+    private void OnIdleTriggerTimeoutKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+        {
+            return;
+        }
+
+        PersistTriggerModeSelectionIfNeeded();
     }
 
     private void OnNewWaveformClicked(object sender, RoutedEventArgs e)
     {
         WaveformsComboBox.SelectedItem = null;
         ApplyWaveformEditor(null);
-    }
-
-    private void OnApplyWaveformTemplateClicked(object sender, RoutedEventArgs e)
-    {
-        if (WaveformTemplateComboBox.SelectedItem is not WaveformScriptTemplate template)
-        {
-            return;
-        }
-
-        SetWaveformEditorValues(template.SuggestedWaveformName, template.Script);
-        RenderWaveformPreviewFromEditor();
     }
 
     private async void OnSaveWaveformClicked(object sender, RoutedEventArgs e)
@@ -323,27 +349,6 @@ public partial class MainWindow : Window
         ApplyRuleEditor(null);
     }
 
-    private void OnApplyRulePresetClicked(object sender, RoutedEventArgs e)
-    {
-        if (RulePresetComboBox.SelectedItem is not SpeedRulePreset preset)
-        {
-            return;
-        }
-
-        RuleNameTextBox.Text = preset.Name;
-        RuleMinTextBox.Text = preset.MinValue.ToString("0.##");
-        RuleMaxTextBox.Text = preset.MaxValue.ToString("0.##");
-        RuleCooldownTextBox.Text = preset.CooldownMs.ToString();
-        RuleEnabledCheckBox.IsChecked = preset.Enabled;
-        RuleStopOnExitCheckBox.IsChecked = preset.StopOnExit;
-
-        if (RuleWaveformComboBox.ItemsSource is IEnumerable<EmsWaveformDefinition> waveforms)
-        {
-            RuleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => string.Equals(item.Id, preset.WaveformId, StringComparison.OrdinalIgnoreCase))
-                ?? waveforms.FirstOrDefault();
-        }
-    }
-
     private async void OnSaveRuleClicked(object sender, RoutedEventArgs e)
     {
         if (RuleWaveformComboBox.SelectedItem is not EmsWaveformDefinition waveform)
@@ -385,18 +390,63 @@ public partial class MainWindow : Window
         RefreshRuleList();
     }
 
+    private void PersistTriggerModeSelectionIfNeeded()
+    {
+        if (_isUpdatingTriggerModeEditor)
+        {
+            return;
+        }
+
+        var selectedMode = GetSelectedTriggerMode();
+        var keypressWaveformId = (KeypressWaveformComboBox.SelectedItem as EmsWaveformDefinition)?.Id;
+        var idleWaveformId = (IdleWaveformComboBox.SelectedItem as EmsWaveformDefinition)?.Id;
+        if (!int.TryParse(IdleTriggerTimeoutTextBox.Text, out var idleTimeoutMs) || idleTimeoutMs <= 0)
+        {
+            ErrorText.Text = "最近错误: 空闲超时时间必须是大于 0 的整数毫秒值。";
+            return;
+        }
+
+        _ = PersistTriggerModeSelectionAsync(
+            selectedMode,
+            keypressWaveformId,
+            IdleTriggerEnabledCheckBox.IsChecked == true,
+            idleTimeoutMs,
+            idleWaveformId);
+    }
+
+    private async Task PersistTriggerModeSelectionAsync(
+        WaveformTriggerMode selectedMode,
+        string? keypressWaveformId,
+        bool idleTriggerEnabled,
+        int idleTriggerTimeoutMs,
+        string? idleWaveformId)
+    {
+        await ExecuteBusyActionAsync(async () =>
+        {
+            await _bootstrapper.UpdateTriggerModeAsync(selectedMode, keypressWaveformId);
+            await _bootstrapper.UpdateIdleTriggerAsync(idleTriggerEnabled, idleTriggerTimeoutMs, idleWaveformId);
+        });
+        ApplyTriggerModeEditor();
+        UpdateRuleState();
+    }
+
     private async Task ExecuteBusyActionAsync(Func<Task> action)
     {
         if (_isBusy)
         {
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync", "忽略重复操作：当前仍处于忙碌状态。");
             return;
         }
 
         try
         {
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync", "开始执行忙碌操作。");
             _isBusy = true;
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync", "忙碌状态已设置，准备刷新连接状态 UI。");
             ApplyBluetoothStatus(_bootstrapper.BluetoothStatus);
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync", "连接状态 UI 刷新完成，准备执行操作委托。");
             await action();
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync", "操作委托执行完成。");
         }
         catch (Exception ex)
         {
@@ -405,35 +455,127 @@ public partial class MainWindow : Window
         }
         finally
         {
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync", "进入收尾阶段，准备恢复空闲状态。");
             _isBusy = false;
             ApplyBluetoothStatus(_bootstrapper.BluetoothStatus);
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync", "空闲状态恢复完成。");
         }
     }
 
     private async Task ExecuteBusyActionAsync(Func<Task<bool>> action)
     {
-        await ExecuteBusyActionAsync(async () => _ = await action());
+        AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync<bool>", "开始执行布尔忙碌操作包装器。");
+        await ExecuteBusyActionAsync(async () =>
+        {
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync<bool>", "准备调用布尔操作委托。");
+            var result = await action();
+            AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync<bool>", $"布尔操作委托执行完成: result={result}");
+        });
+        AppDiagnostics.WriteInfo("MainWindow.ExecuteBusyActionAsync<bool>", "布尔忙碌操作包装器执行完成。");
     }
 
     private void RenderWaveformPreview(EmsWaveformDefinition? waveform)
     {
+        _waveformDragHandles = Array.Empty<WaveformDragHandle>();
         WaveformPreviewCanvas.Children.Clear();
         if (waveform is null)
         {
-            AddWaveformPlaceholder("请选择一个波形来查看预览");
+            AddWaveformPlaceholder(WaveformPreviewCanvas, "请选择一个波形来查看预览");
             return;
         }
 
         var preview = WaveformPreviewBuilder.Build(waveform);
         if (preview.Points.Count == 0 || preview.TotalDurationMs <= 0)
         {
-            AddWaveformPlaceholder("当前波形没有可绘制的数据点");
+            AddWaveformPlaceholder(WaveformPreviewCanvas, "当前波形没有可绘制的数据点");
             return;
         }
 
         var width = Math.Max(1d, WaveformPreviewCanvas.ActualWidth > 0 ? WaveformPreviewCanvas.ActualWidth : 520d);
         var height = WaveformPreviewCanvas.Height;
-        DrawWaveformGuides(width, height);
+        DrawWaveformPreview(WaveformPreviewCanvas, preview, width, height);
+
+        const double channelHandleRadius = 6d;
+        const double durationHandleRadius = 7d;
+        var padding = WaveformPreviewPadding;
+        _waveformDragHandles = WaveformDragEditorLogic.BuildHandles(waveform.Steps, width, height, padding);
+        foreach (var handle in _waveformDragHandles)
+        {
+            switch (handle.Kind)
+            {
+                case WaveformDragHandleKind.ChannelA:
+                case WaveformDragHandleKind.ChannelB:
+                {
+                    var color = handle.Kind == WaveformDragHandleKind.ChannelA ? "#4FD1C5" : "#F59E0B";
+                    var ellipse = new Ellipse
+                    {
+                        Width = channelHandleRadius * 2,
+                        Height = channelHandleRadius * 2,
+                        Fill = CreateBrush(color),
+                        Stroke = CreateBrush("#E2E8F0"),
+                        StrokeThickness = 1.2,
+                        Cursor = Cursors.SizeNS
+                    };
+                    System.Windows.Controls.Canvas.SetLeft(ellipse, handle.X - channelHandleRadius);
+                    System.Windows.Controls.Canvas.SetTop(ellipse, handle.Y - channelHandleRadius);
+                    WaveformPreviewCanvas.Children.Add(ellipse);
+                    break;
+                }
+                case WaveformDragHandleKind.Duration:
+                {
+                    var diamond = new Polygon
+                    {
+                        Fill = CreateBrush("#93C5FD"),
+                        Stroke = CreateBrush("#E2E8F0"),
+                        StrokeThickness = 1,
+                        Cursor = Cursors.SizeWE,
+                        Points = new PointCollection
+                        {
+                            new Point(handle.X, handle.Y - durationHandleRadius),
+                            new Point(handle.X + durationHandleRadius, handle.Y),
+                            new Point(handle.X, handle.Y + durationHandleRadius),
+                            new Point(handle.X - durationHandleRadius, handle.Y)
+                        }
+                    };
+                    WaveformPreviewCanvas.Children.Add(diamond);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void RefreshRuleWaveformPreview()
+    {
+        var waveform = RuleWaveformComboBox.SelectedItem as EmsWaveformDefinition;
+        RuleWaveformPreviewCanvas.Children.Clear();
+        if (waveform is null)
+        {
+            RuleWaveformPeakAText.Text = "0%";
+            RuleWaveformPeakBText.Text = "0%";
+            RuleWaveformDurationText.Text = "0 ms";
+            AddWaveformPlaceholder(RuleWaveformPreviewCanvas, "选择绑定波形后，在这里查看预览");
+            return;
+        }
+
+        RuleWaveformPeakAText.Text = $"{waveform.Steps.DefaultIfEmpty().Max(step => step?.AStrength ?? 0)}%";
+        RuleWaveformPeakBText.Text = $"{waveform.Steps.DefaultIfEmpty().Max(step => step?.BStrength ?? 0)}%";
+        RuleWaveformDurationText.Text = $"{waveform.Steps.Sum(step => Math.Max(1, step.DurationMs))} ms";
+
+        var preview = WaveformPreviewBuilder.Build(waveform);
+        if (preview.Points.Count == 0 || preview.TotalDurationMs <= 0)
+        {
+            AddWaveformPlaceholder(RuleWaveformPreviewCanvas, "当前波形没有可绘制的数据点");
+            return;
+        }
+
+        var width = Math.Max(1d, RuleWaveformPreviewCanvas.ActualWidth > 0 ? RuleWaveformPreviewCanvas.ActualWidth : 520d);
+        var height = RuleWaveformPreviewCanvas.Height;
+        DrawWaveformPreview(RuleWaveformPreviewCanvas, preview, width, height);
+    }
+
+    private void DrawWaveformPreview(Canvas canvas, WaveformPreview preview, double width, double height)
+    {
+        DrawWaveformGuides(canvas, width, height);
 
         var aLine = new Polyline
         {
@@ -446,7 +588,7 @@ public partial class MainWindow : Window
             StrokeThickness = 2
         };
 
-        const double padding = 8d;
+        var padding = WaveformPreviewPadding;
         foreach (var point in preview.Points)
         {
             var x = padding + (width - padding * 2) * point.TimeMs / preview.TotalDurationMs;
@@ -456,10 +598,9 @@ public partial class MainWindow : Window
             bLine.Points.Add(new Point(x, bY));
         }
 
-        WaveformPreviewCanvas.Children.Add(aLine);
-        WaveformPreviewCanvas.Children.Add(bLine);
-
-        WaveformPreviewCanvas.Children.Add(new System.Windows.Controls.TextBlock
+        canvas.Children.Add(aLine);
+        canvas.Children.Add(bLine);
+        canvas.Children.Add(new System.Windows.Controls.TextBlock
         {
             Text = "A 通道",
             Foreground = CreateBrush("#4FD1C5"),
@@ -473,7 +614,7 @@ public partial class MainWindow : Window
             FontSize = 11
         };
         System.Windows.Controls.Canvas.SetLeft(bLabel, Math.Max(80d, width - 56d));
-        WaveformPreviewCanvas.Children.Add(bLabel);
+        canvas.Children.Add(bLabel);
     }
 
     private void RenderWaveformPreviewFromEditor()
@@ -491,7 +632,7 @@ public partial class MainWindow : Window
         catch (FormatException)
         {
             WaveformPreviewCanvas.Children.Clear();
-            AddWaveformPlaceholder("脚本格式无效，无法生成预览");
+            AddWaveformPlaceholder(WaveformPreviewCanvas, "脚本格式无效，无法生成预览");
         }
     }
 
@@ -520,25 +661,55 @@ public partial class MainWindow : Window
             RuleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == rule?.WaveformId)
                 ?? waveforms.FirstOrDefault();
         }
+
+        RefreshRuleWaveformPreview();
     }
 
-    private void ApplyWaveformTemplateDescription(WaveformScriptTemplate? template)
+    private void ApplyTriggerModeEditor()
     {
-        WaveformTemplateDescriptionText.Text = template?.Description ?? "模板会自动填入推荐波形名和脚本。";
+        _isUpdatingTriggerModeEditor = true;
+        try
+        {
+            TriggerModeComboBox.SelectedItem = TriggerModeOptions.FirstOrDefault(item => item.Mode == _bootstrapper.TriggerMode)
+                ?? TriggerModeOptions.First();
+
+            if (KeypressWaveformComboBox.ItemsSource is IEnumerable<EmsWaveformDefinition> waveforms)
+            {
+                KeypressWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == _bootstrapper.KeypressWaveformId)
+                    ?? waveforms.FirstOrDefault();
+
+                IdleWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == _bootstrapper.IdleWaveformId)
+                    ?? waveforms.FirstOrDefault();
+            }
+
+            IdleTriggerEnabledCheckBox.IsChecked = _bootstrapper.IdleTriggerEnabled;
+            IdleTriggerTimeoutTextBox.Text = _bootstrapper.IdleTriggerTimeoutMs.ToString();
+            UpdateTriggerModeUi();
+        }
+        finally
+        {
+            _isUpdatingTriggerModeEditor = false;
+        }
     }
 
-    private void ApplyRulePresetDescription(SpeedRulePreset? preset)
+    private void UpdateTriggerModeUi()
     {
-        RulePresetDescriptionText.Text = preset?.Description ?? "预设会填充推荐速度区间、冷却时间和目标波形。";
+        var isAnyKeypressMode = GetSelectedTriggerMode() == WaveformTriggerMode.AnyKeypress;
+        KeypressModePanel.Visibility = isAnyKeypressMode ? Visibility.Visible : Visibility.Collapsed;
+        IdleTriggerPanel.Visibility = Visibility.Visible;
+        SpeedRuleListPanel.IsEnabled = !isAnyKeypressMode;
+        SpeedRuleListPanel.Opacity = isAnyKeypressMode ? 0.45 : 1;
+        SpeedRuleEditorPanel.IsEnabled = !isAnyKeypressMode;
+        SpeedRuleEditorPanel.Opacity = isAnyKeypressMode ? 0.45 : 1;
     }
 
-    private void DrawWaveformGuides(double width, double height)
+    private void DrawWaveformGuides(Canvas canvas, double width, double height)
     {
-        const double padding = 8d;
+        var padding = WaveformPreviewPadding;
         for (var index = 0; index < 4; index++)
         {
             var y = padding + (height - padding * 2) * index / 3d;
-            WaveformPreviewCanvas.Children.Add(new Line
+            canvas.Children.Add(new Line
             {
                 X1 = padding,
                 X2 = width - padding,
@@ -550,14 +721,114 @@ public partial class MainWindow : Window
         }
     }
 
-    private void AddWaveformPlaceholder(string message)
+    private void AddWaveformPlaceholder(Canvas canvas, string message)
     {
-        WaveformPreviewCanvas.Children.Add(new System.Windows.Controls.TextBlock
+        canvas.Children.Add(new System.Windows.Controls.TextBlock
         {
             Text = message,
             Foreground = CreateBrush("#8FA4C6"),
             FontSize = 12
         });
+    }
+
+    private void OnWaveformPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!TryParseWaveformEditorSteps(out var steps))
+        {
+            return;
+        }
+
+        var point = e.GetPosition(WaveformPreviewCanvas);
+        if (!TryFindWaveformDragHandle(point, out var handle))
+        {
+            return;
+        }
+
+        _activeWaveformDrag = new WaveformDragSession(
+            handle,
+            point,
+            steps,
+            Math.Max(1d, WaveformPreviewCanvas.ActualWidth > 0 ? WaveformPreviewCanvas.ActualWidth : 520d),
+            WaveformPreviewCanvas.Height);
+        WaveformPreviewCanvas.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void OnWaveformPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_activeWaveformDrag is null || e.LeftButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        var drag = _activeWaveformDrag;
+        var point = e.GetPosition(WaveformPreviewCanvas);
+        IReadOnlyList<EmsWaveformStep> updatedSteps = drag.Handle.Kind switch
+        {
+            WaveformDragHandleKind.ChannelA or WaveformDragHandleKind.ChannelB => WaveformDragEditorLogic.UpdateStrength(
+                drag.OriginalSteps,
+                drag.Handle.StepIndex,
+                drag.Handle.Kind,
+                point.Y,
+                drag.Height,
+                WaveformPreviewPadding),
+            WaveformDragHandleKind.Duration => WaveformDragEditorLogic.UpdateDurationFromDelta(
+                drag.OriginalSteps,
+                drag.Handle.StepIndex,
+                point.X - drag.StartPoint.X,
+                drag.Width,
+                WaveformPreviewPadding),
+            _ => drag.OriginalSteps
+        };
+
+        UpdateWaveformScriptFromSteps(updatedSteps);
+        e.Handled = true;
+    }
+
+    private void OnWaveformPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        EndWaveformPreviewDrag();
+    }
+
+    private void OnWaveformPreviewLostMouseCapture(object sender, MouseEventArgs e)
+    {
+        _activeWaveformDrag = null;
+    }
+
+    private void EndWaveformPreviewDrag()
+    {
+        _activeWaveformDrag = null;
+        if (WaveformPreviewCanvas.IsMouseCaptured)
+        {
+            WaveformPreviewCanvas.ReleaseMouseCapture();
+        }
+    }
+
+    private bool TryFindWaveformDragHandle(Point point, out WaveformDragHandle handle)
+    {
+        const double strengthHitRadius = 10d;
+        const double durationHitRadius = 9d;
+
+        foreach (var candidate in _waveformDragHandles.Reverse())
+        {
+            var hit = candidate.Kind switch
+            {
+                WaveformDragHandleKind.ChannelA or WaveformDragHandleKind.ChannelB =>
+                    Math.Pow(point.X - candidate.X, 2) + Math.Pow(point.Y - candidate.Y, 2) <= strengthHitRadius * strengthHitRadius,
+                WaveformDragHandleKind.Duration =>
+                    Math.Abs(point.X - candidate.X) <= durationHitRadius && Math.Abs(point.Y - candidate.Y) <= durationHitRadius,
+                _ => false
+            };
+
+            if (hit)
+            {
+                handle = candidate;
+                return true;
+            }
+        }
+
+        handle = null!;
+        return false;
     }
 
     private static Brush CreateBrush(string hexColor)
@@ -889,8 +1160,8 @@ public partial class MainWindow : Window
             Background = CreateBrush("#162235"),
             BorderBrush = CreateBrush("#263752"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(999),
-            Height = 10,
+            CornerRadius = new CornerRadius(2),
+            Height = 12,
             Margin = new Thickness(0, 8, 0, 0),
             Child = new Grid()
         };
@@ -899,9 +1170,9 @@ public partial class MainWindow : Window
         trackGrid.Children.Add(new Border
         {
             HorizontalAlignment = HorizontalAlignment.Left,
-            Width = Math.Max(8, 1.8 * Math.Clamp(strength, 0, 100)),
+            Width = Math.Max(10, 1.8 * Math.Clamp(strength, 0, 100)),
             Background = CreateBrush(colorHex),
-            CornerRadius = new CornerRadius(999),
+            CornerRadius = new CornerRadius(2),
             Opacity = 0.95
         });
 
@@ -928,6 +1199,20 @@ public partial class MainWindow : Window
             _ => "#3C2A11"
         });
     }
+
+    private WaveformTriggerMode GetSelectedTriggerMode()
+    {
+        return (TriggerModeComboBox.SelectedItem as TriggerModeOption)?.Mode ?? WaveformTriggerMode.SpeedRules;
+    }
+
+    private sealed record WaveformDragSession(
+        WaveformDragHandle Handle,
+        Point StartPoint,
+        IReadOnlyList<EmsWaveformStep> OriginalSteps,
+        double Width,
+        double Height);
+
+    private sealed record TriggerModeOption(WaveformTriggerMode Mode, string Name);
 
     private sealed record DeviceOption(string DeviceId, string Summary);
 }
