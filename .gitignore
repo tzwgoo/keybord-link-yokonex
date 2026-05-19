@@ -6,3 +6,15 @@ TestResults/
 *.suo
 *.nupkg
 artifacts/
+*.cache
+*.tmp
+*.temp
+*.log
+*.orig
+*.rej
+.idea/
+.vscode/
+_ReSharper*/
+Thumbs.db
+.DS_Store
+logs/
