@@ -48,11 +48,6 @@ public sealed class GlobalKeyboardListener : IGlobalKeyboardListener
 
     private void HandleKeyDown(object? sender, KeystrokeCapturedEventArgs e)
     {
-        if (!KeyboardInputClassifier.ShouldCount(e.VirtualKey))
-        {
-            return;
-        }
-
         KeystrokeCaptured?.Invoke(this, e);
     }
 

@@ -48,6 +48,7 @@ public sealed class MainWindowLayoutTests
         var xaml = ReadMainWindowXaml();
 
         Assert.DoesNotContain("把全局打字速度、蓝牙 EMS 设备控制、波形编辑和规则绑定放进同一个现代化桌面控制台。", xaml);
+        Assert.DoesNotContain("你的输入节奏正在驱动设备响应", xaml);
     }
 
     [Fact]
@@ -107,6 +108,22 @@ public sealed class MainWindowLayoutTests
     }
 
     [Fact]
+    public void RuleWorkspace_ShouldContainSpecificKeyTriggerSettings()
+    {
+        var xaml = ReadMainWindowXaml();
+
+        Assert.Contains("Text=\"指定按键映射\"", xaml);
+        Assert.Contains("x:Name=\"SpecificKeyKeyboardPanel\"", xaml);
+        Assert.Contains("x:Name=\"SpecificKeyTextBox\"", xaml);
+        Assert.Contains("x:Name=\"SpecificKeyBindingStatusText\"", xaml);
+        Assert.Contains("x:Name=\"SpecificKeyWaveformComboBox\"", xaml);
+        Assert.Contains("Content=\"保存映射\"", xaml);
+        Assert.Contains("Content=\"删除映射\"", xaml);
+        Assert.DoesNotContain("x:Name=\"SpecificKeyBindingsComboBox\"", xaml);
+        Assert.DoesNotContain("Text=\"点击键帽选中按键。已保存映射的键会高亮显示。\"", xaml);
+    }
+
+    [Fact]
     public void RuleWorkspace_ShouldContainIdleTriggerSettings()
     {
         var xaml = ReadMainWindowXaml();
@@ -160,6 +177,26 @@ public sealed class MainWindowLayoutTests
 
         Assert.Contains("CornerRadius = new CornerRadius(2)", codeBehind);
         Assert.DoesNotContain("Width = Math.Max(8, 1.8 * Math.Clamp(strength, 0, 100)),\r\n            Background = CreateBrush(colorHex),\r\n            CornerRadius = new CornerRadius(999)", codeBehind);
+    }
+
+    [Fact]
+    public void SpecificKeyKeyboard_ShouldContainFunctionAndNavigationKeys()
+    {
+        var codeBehind = ReadMainWindowCodeBehind();
+
+        Assert.Contains("new KeyboardKeyDefinition(0x70, \"F1\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x7B, \"F12\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x2C, \"Prt\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x91, \"Scr\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x13, \"Pau\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x2D, \"Ins\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x22, \"PgDn\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0xC0, \"`\")", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0xA1, \"Shift\", 2.2)", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0xA5, \"Alt\", 1.3)", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x5C, \"Win\", 1.3)", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0x5D, \"Menu\", 1.3)", codeBehind);
+        Assert.Contains("new KeyboardKeyDefinition(0xA3, \"Ctrl\", 1.4)", codeBehind);
     }
 
     private static string ReadMainWindowXaml()

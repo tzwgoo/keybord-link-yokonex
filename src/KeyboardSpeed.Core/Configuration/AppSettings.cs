@@ -13,6 +13,12 @@ public sealed record AppSettings
 
     public string KeypressWaveformId { get; init; } = "soft-pulse";
 
+    public int SpecificKeyVirtualKey { get; init; }
+
+    public string SpecificKeyWaveformId { get; init; } = "soft-pulse";
+
+    public List<SpecificKeyTriggerBinding> SpecificKeyTriggers { get; init; } = [];
+
     public bool IdleTriggerEnabled { get; init; }
 
     public int IdleTriggerTimeoutMs { get; init; } = DefaultIdleTriggerTimeoutMs;
@@ -29,6 +35,9 @@ public sealed record AppSettings
         {
             TriggerMode = WaveformTriggerMode.SpeedRules,
             KeypressWaveformId = "soft-pulse",
+            SpecificKeyVirtualKey = 0,
+            SpecificKeyWaveformId = "soft-pulse",
+            SpecificKeyTriggers = [],
             IdleTriggerEnabled = false,
             IdleTriggerTimeoutMs = DefaultIdleTriggerTimeoutMs,
             IdleWaveformId = DefaultIdleReminderWaveformId,

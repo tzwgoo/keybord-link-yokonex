@@ -3,5 +3,6 @@ namespace KeyboardSpeed.Core.Rules;
 public enum WaveformTriggerMode
 {
     SpeedRules = 0,
-    AnyKeypress = 1
+    AnyKeypress = 1,
+    SpecificKeypress = 2
 }

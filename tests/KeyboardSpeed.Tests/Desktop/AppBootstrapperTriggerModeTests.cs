@@ -54,6 +54,81 @@ public sealed class AppBootstrapperTriggerModeTests : IDisposable
     }
 
     [Fact]
+    public async Task SpecificKeypressMode_ShouldOnlyDispatchWhenConfiguredKeyIsPressed()
+    {
+        var settingsPath = Path.Combine(_directoryPath, "specific-key-trigger-mode-settings.json");
+        var settingsStore = new SettingsStore(settingsPath);
+        await settingsStore.SaveAsync(new AppSettings
+        {
+            TriggerMode = WaveformTriggerMode.SpecificKeypress,
+            SpecificKeyTriggers =
+            [
+                new SpecificKeyTriggerBinding
+                {
+                    VirtualKey = 0x11,
+                    WaveformId = "wave-cascade"
+                },
+                new SpecificKeyTriggerBinding
+                {
+                    VirtualKey = 0x12,
+                    WaveformId = "idle-jolt"
+                }
+            ]
+        }, CancellationToken.None);
+
+        var keyboardListener = new FakeKeyboardListener();
+        var bridge = new FakeWindowsBlePlatformBridge();
+        var deviceManager = new BleDeviceManager(bridge);
+        using var bootstrapper = new AppBootstrapper(
+            new TypingSpeedCalculator(new TypingSpeedOptions()),
+            keyboardListener,
+            deviceManager,
+            new SpeedRuleCoordinator(new SpeedRuleEngine()),
+            settingsStore);
+
+        await bootstrapper.ScanBluetoothAsync(CancellationToken.None);
+        await bootstrapper.ConnectBluetoothAsync(bridge.Device.DeviceId, CancellationToken.None);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(DateTimeOffset.Now, virtualKey: 0x13, isCounted: false));
+        Assert.Empty(deviceManager.PacketHistory);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(DateTimeOffset.Now.AddMilliseconds(20), virtualKey: 0x11, isCounted: false));
+        Assert.True(SpinWait.SpinUntil(() => deviceManager.PacketHistory.Count > 0, 1000));
+        var firstDispatchCount = deviceManager.PacketHistory.Count;
+        Assert.Equal("指定按键触发", bootstrapper.CurrentRuleName);
+        Assert.Equal("波浪级联", bootstrapper.CurrentWaveformName);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(DateTimeOffset.Now.AddMilliseconds(40), virtualKey: 0x12, isCounted: false));
+        Assert.True(SpinWait.SpinUntil(() => deviceManager.PacketHistory.Count > firstDispatchCount, 1000));
+        Assert.Equal("高压警醒", bootstrapper.CurrentWaveformName);
+        Assert.Equal(0, bootstrapper.CurrentSnapshot.ActiveSampleCount);
+    }
+
+    [Fact]
+    public async Task SpecificKeypressMode_ShouldMigrateLegacySingleSpecificKeyConfiguration()
+    {
+        var settingsPath = Path.Combine(_directoryPath, "legacy-specific-key-trigger-mode-settings.json");
+        var settingsStore = new SettingsStore(settingsPath);
+        await settingsStore.SaveAsync(new AppSettings
+        {
+            TriggerMode = WaveformTriggerMode.SpecificKeypress,
+            SpecificKeyVirtualKey = 0x11,
+            SpecificKeyWaveformId = "wave-cascade"
+        }, CancellationToken.None);
+
+        using var bootstrapper = new AppBootstrapper(
+            new TypingSpeedCalculator(new TypingSpeedOptions()),
+            new FakeKeyboardListener(),
+            new BleDeviceManager(new FakeWindowsBlePlatformBridge()),
+            new SpeedRuleCoordinator(new SpeedRuleEngine()),
+            settingsStore);
+
+        var binding = Assert.Single(bootstrapper.SpecificKeyTriggers);
+        Assert.Equal(0x11, binding.VirtualKey);
+        Assert.Equal("wave-cascade", binding.WaveformId);
+    }
+
+    [Fact]
     public async Task IdleTrigger_ShouldDispatchOnceAfterTimeoutAndRearmAfterNextKeystroke()
     {
         var settingsPath = Path.Combine(_directoryPath, "idle-trigger-settings.json");

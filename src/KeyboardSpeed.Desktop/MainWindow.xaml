@@ -6,17 +6,19 @@
         mc:Ignorable="d"
         Title="Keyboard Speed YOKONEX"
         Icon="Assets/yokonex-logo.png"
-        Height="860"
-        Width="1440"
-        MinHeight="760"
-        MinWidth="1240"
+        Height="920"
+        Width="1560"
+        MinHeight="820"
+        MinWidth="1360"
         WindowStartupLocation="CenterScreen"
-        Background="#07111F">
+        Background="#040B16"
+        FontFamily="Microsoft YaHei UI">
     <Window.Resources>
         <SolidColorBrush x:Key="WindowBrush" Color="#07111F" />
         <SolidColorBrush x:Key="PanelBrush" Color="#0C1729" />
         <SolidColorBrush x:Key="CardBrush" Color="#101D34" />
         <SolidColorBrush x:Key="CardSoftBrush" Color="#13233E" />
+        <SolidColorBrush x:Key="CardAltBrush" Color="#0B1527" />
         <SolidColorBrush x:Key="BorderBrushStrong" Color="#243554" />
         <SolidColorBrush x:Key="BorderBrushSoft" Color="#1B2944" />
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F8FAFC" />
@@ -24,28 +26,58 @@
         <SolidColorBrush x:Key="InputTextBrush" Color="#0B1527" />
         <SolidColorBrush x:Key="AccentBrush" Color="#4FD1C5" />
         <SolidColorBrush x:Key="AccentWarmBrush" Color="#F59E0B" />
+        <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#040B16" />
+            <GradientStop Offset="0.45" Color="#071425" />
+            <GradientStop Offset="1" Color="#03101C" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="HeaderPanelBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#0E1D34" />
+            <GradientStop Offset="0.55" Color="#0A172C" />
+            <GradientStop Offset="1" Color="#0B1E33" />
+        </LinearGradientBrush>
         <LinearGradientBrush x:Key="HeroBrush" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Offset="0" Color="#132A56" />
             <GradientStop Offset="0.55" Color="#183563" />
             <GradientStop Offset="1" Color="#0D7C87" />
         </LinearGradientBrush>
+        <DropShadowEffect x:Key="ShellShadowEffect"
+                          BlurRadius="36"
+                          ShadowDepth="0"
+                          Color="#020817"
+                          Opacity="0.42" />
+        <DropShadowEffect x:Key="CardShadowEffect"
+                          BlurRadius="22"
+                          ShadowDepth="0"
+                          Color="#020817"
+                          Opacity="0.28" />
 
         <Style x:Key="CardBorderStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="22" />
-            <Setter Property="Padding" Value="20" />
-            <Setter Property="Background" Value="{StaticResource CardBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+            <Setter Property="Padding" Value="22" />
+            <Setter Property="Background" Value="#0E1A31" />
+            <Setter Property="BorderBrush" Value="#213654" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Effect" Value="{StaticResource CardShadowEffect}" />
         </Style>
 
         <Style x:Key="WorkspaceCardStyle" TargetType="Border" BasedOn="{StaticResource CardBorderStyle}">
-            <Setter Property="Padding" Value="22" />
-            <Setter Property="Background" Value="{StaticResource CardSoftBrush}" />
-            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="Padding" Value="24" />
+            <Setter Property="Background" Value="#0D1B31" />
+            <Setter Property="BorderBrush" Value="#28405F" />
+            <Setter Property="CornerRadius" Value="26" />
+        </Style>
+
+        <Style x:Key="MetricTileStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardAltBrush}" />
+            <Setter Property="BorderBrush" Value="#22324E" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="16" />
         </Style>
 
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontSize" Value="19" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         </Style>
@@ -57,14 +89,15 @@
 
         <Style TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background" Value="#1B2D4B" />
-            <Setter Property="BorderBrush" Value="#35507C" />
+            <Setter Property="Background" Value="#17314F" />
+            <Setter Property="BorderBrush" Value="#325782" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="14,9" />
+            <Setter Property="Padding" Value="16,10" />
             <Setter Property="Margin" Value="0" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="MinHeight" Value="42" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -81,8 +114,12 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#23406A" />
-                    <Setter Property="BorderBrush" Value="#4FD1C5" />
+                    <Setter Property="Background" Value="#214267" />
+                    <Setter Property="BorderBrush" Value="#58D9CB" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#112741" />
+                    <Setter Property="BorderBrush" Value="#7DD3FC" />
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.45" />
@@ -100,9 +137,9 @@
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="{StaticResource InputTextBrush}" />
-            <Setter Property="Background" Value="#0B1527" />
-            <Setter Property="BorderBrush" Value="#334768" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="#0A1426" />
+            <Setter Property="BorderBrush" Value="#32507B" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="FontSize" Value="13" />
@@ -150,10 +187,10 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="TabBorder"
-                                Background="#102038"
-                                BorderBrush="#22314D"
+                                Background="#0D1B31"
+                                BorderBrush="#243754"
                                 BorderThickness="1"
-                                CornerRadius="14"
+                                CornerRadius="16"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
@@ -161,12 +198,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBorder" Property="Background" Value="#17365D" />
-                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#4FD1C5" />
+                                <Setter TargetName="TabBorder" Property="Background" Value="#153757" />
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#58D9CB" />
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#3C6AA3" />
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#4F77A8" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -175,112 +212,193 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="32">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="22" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <Grid Background="{StaticResource WindowBackgroundBrush}">
+        <Grid IsHitTestVisible="False">
+            <Ellipse Width="520"
+                     Height="520"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Top"
+                     Margin="0,-160,-120,0"
+                     Fill="#153B67"
+                     Opacity="0.18" />
+            <Ellipse Width="420"
+                     Height="420"
+                     HorizontalAlignment="Left"
+                     VerticalAlignment="Bottom"
+                     Margin="-140,0,0,-180"
+                     Fill="#0D7C87"
+                     Opacity="0.14" />
+        </Grid>
 
-        <Border Background="{StaticResource PanelBrush}"
-                BorderBrush="{StaticResource BorderBrushStrong}"
-                BorderThickness="1"
-                CornerRadius="28"
-                Padding="24">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+        <Grid Margin="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="22" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
+            <Border Background="{StaticResource HeaderPanelBrush}"
+                    BorderBrush="#28405F"
+                    BorderThickness="1"
+                    CornerRadius="32"
+                    Padding="28"
+                    Effect="{StaticResource ShellShadowEffect}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="72" />
-                        <ColumnDefinition Width="18" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="340" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Width="72"
-                            Height="72"
-                            Background="#F8FAFC"
-                            CornerRadius="22"
-                            Padding="10"
-                            VerticalAlignment="Center">
-                        <Image Source="Assets/yokonex-logo.png"
-                               Stretch="Uniform" />
-                    </Border>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="78" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="2"
-                                VerticalAlignment="Center">
-                        <TextBlock FontSize="14"
-                                   Foreground="#7DD3FC"
-                                   Text="YOKONEX · BLE CONTROL STUDIO" />
-                        <TextBlock Margin="0,10,0,0"
-                                   FontSize="32"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   Text="键盘测速与波形联动工作台" />
-                    </StackPanel>
+                        <Border Width="78"
+                                Height="78"
+                                Background="#F8FAFC"
+                                CornerRadius="24"
+                                Padding="10"
+                                VerticalAlignment="Top">
+                            <Image Source="Assets/yokonex-logo.png"
+                                   Stretch="Uniform" />
+                        </Border>
+
+                        <StackPanel Grid.Column="2"
+                                    VerticalAlignment="Center">
+                            <TextBlock FontSize="14"
+                                       Foreground="#7DD3FC"
+                                       Text="YOKONEX · BLE CONTROL STUDIO" />
+                            <TextBlock Margin="0,10,0,0"
+                                       FontSize="34"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="键盘测速与波形联动工作台" />
+                            <TextBlock Margin="0,10,0,0"
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Text="实时测速、设备控制、波形编辑和规则联动都集中在一个工作台里。" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Column="2"
+                            Background="#0B172B"
+                            BorderBrush="#213552"
+                            BorderThickness="1"
+                            CornerRadius="24"
+                            Padding="18">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock FontSize="12"
+                                           Foreground="#8FB2DA"
+                                           Text="键盘监听" />
+                                <TextBlock x:Name="HeaderListeningBadge"
+                                           Margin="0,10,0,0"
+                                           FontSize="22"
+                                           FontWeight="SemiBold"
+                                           Foreground="#D1FAE5"
+                                           Text="监听中" />
+                                <TextBlock Margin="0,8,0,0"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Text="主状态始终固定显示" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock FontSize="12"
+                                           Foreground="#8FB2DA"
+                                           Text="设备连接" />
+                                <TextBlock x:Name="HeaderDeviceBadge"
+                                           Margin="0,10,0,0"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Foreground="#E2E8F0"
+                                           TextWrapping="Wrap"
+                                           Text="设备未连接" />
+                                <TextBlock Margin="0,8,0,0"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Text="连接后这里会立即同步" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
+            </Border>
 
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Top">
-                    <Border Background="#0F2038"
-                            BorderBrush="#25436A"
-                            BorderThickness="1"
-                            CornerRadius="999"
-                            Padding="14,8"
-                            Margin="0,0,10,0">
-                        <TextBlock x:Name="HeaderListeningBadge"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Foreground="#D1FAE5"
-                                   Text="监听中" />
-                    </Border>
-                    <Border Background="#0F2038"
-                            BorderBrush="#25436A"
-                            BorderThickness="1"
-                            CornerRadius="999"
-                            Padding="14,8">
-                        <TextBlock x:Name="HeaderDeviceBadge"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Foreground="#E2E8F0"
-                                   Text="设备未连接" />
-                    </Border>
-                </StackPanel>
-            </Grid>
-        </Border>
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="336" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="332" />
-                <ColumnDefinition Width="28" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+                <!-- 左侧固定展示运行态概览，切换工作标签时核心指标不会丢。 -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <StackPanel Margin="0,2,0,0">
+                            <TextBlock FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="运行概览" />
+                            <TextBlock Margin="0,6,0,0"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Text="左侧只放实时状态和摘要，方便边操作边看反馈。" />
+                        </StackPanel>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel>
                     <Border Style="{StaticResource CardBorderStyle}"
+                            Margin="0,18,0,0"
                             Background="{StaticResource HeroBrush}">
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="20" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="18" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <StackPanel>
-                                <TextBlock FontSize="13"
-                                           Foreground="#BFDBFE"
-                                           Text="实时输入热区" />
-                                <TextBlock Margin="0,8,0,0"
-                                           FontSize="22"
-                                           FontWeight="SemiBold"
-                                           Foreground="#F8FAFC"
-                                           Text="你的输入节奏正在驱动设备响应" />
-                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel>
+                                    <TextBlock FontSize="13"
+                                               Foreground="#BFDBFE"
+                                               Text="实时输入热区" />
+                                    <TextBlock Margin="0,12,0,0"
+                                               FontSize="23"
+                                               FontWeight="SemiBold"
+                                               Foreground="#FFFFFF"
+                                               Text="把当前打字节奏放到最显眼的位置" />
+                                </StackPanel>
+
+                                <Border Grid.Column="2"
+                                        Background="#102745"
+                                        BorderBrush="#5C86BB"
+                                        BorderThickness="1"
+                                        CornerRadius="999"
+                                        Padding="14,8"
+                                        VerticalAlignment="Top">
+                                    <TextBlock FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#D1FAE5"
+                                               Text="{Binding ElementName=HeaderListeningBadge, Path=Text}" />
+                                </Border>
+                            </Grid>
 
                             <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
@@ -289,11 +407,11 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <Border Background="#12284A"
-                                        BorderBrush="#547CB3"
-                                        BorderThickness="1"
-                                        CornerRadius="18"
-                                        Padding="18">
+                                        <Border Background="#12284A"
+                                                BorderBrush="#547CB3"
+                                                BorderThickness="1"
+                                                CornerRadius="18"
+                                                Padding="18">
                                     <StackPanel>
                                         <TextBlock FontSize="12"
                                                    Foreground="#BFDBFE"
@@ -323,9 +441,48 @@
                                                    FontWeight="Bold"
                                                    Foreground="#FFFFFF"
                                                    Text="0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                            <Border Grid.Row="4"
+                                    Background="#0E223F"
+                                    BorderBrush="#42658E"
+                                    BorderThickness="1"
+                                    CornerRadius="18"
+                                    Padding="16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+                                        <TextBlock FontSize="12"
+                                                   Foreground="#BFDBFE"
+                                                   Text="当前工作节奏" />
+                                        <TextBlock Margin="0,8,0,0"
+                                                   FontSize="13"
+                                                   Foreground="#D9E8FF"
+                                                   Text="监听状态、输入趋势和标签编辑区会保持同步更新。" />
                                     </StackPanel>
-                                </Border>
-                            </Grid>
+
+                                    <Border Grid.Column="1"
+                                            Background="#14304F"
+                                            BorderBrush="#4FD1C5"
+                                            BorderThickness="1"
+                                            CornerRadius="16"
+                                            Padding="12,8"
+                                            Margin="16,0,0,0"
+                                            VerticalAlignment="Center">
+                                        <TextBlock x:Name="StatusText"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#4ADE80"
+                                                   Text="监听中" />
+                                    </Border>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </Border>
 
@@ -341,11 +498,7 @@
                                        Text="输入总览" />
 
                             <UniformGrid Grid.Row="2" Columns="2">
-                                <Border Background="#0B1527"
-                                        BorderBrush="#23314B"
-                                        BorderThickness="1"
-                                        CornerRadius="16"
-                                        Padding="16"
+                                <Border Style="{StaticResource MetricTileStyle}"
                                         Margin="0,0,8,8">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource CaptionStyle}"
@@ -358,11 +511,7 @@
                                                    Text="0" />
                                     </StackPanel>
                                 </Border>
-                                <Border Background="#0B1527"
-                                        BorderBrush="#23314B"
-                                        BorderThickness="1"
-                                        CornerRadius="16"
-                                        Padding="16"
+                                <Border Style="{StaticResource MetricTileStyle}"
                                         Margin="8,0,0,8">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource CaptionStyle}"
@@ -375,11 +524,7 @@
                                                    Text="0" />
                                     </StackPanel>
                                 </Border>
-                                <Border Background="#0B1527"
-                                        BorderBrush="#23314B"
-                                        BorderThickness="1"
-                                        CornerRadius="16"
-                                        Padding="16"
+                                <Border Style="{StaticResource MetricTileStyle}"
                                         Margin="0,8,8,0">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource CaptionStyle}"
@@ -392,21 +537,16 @@
                                                    Text="--:--:--" />
                                     </StackPanel>
                                 </Border>
-                                <Border Background="#0B1527"
-                                        BorderBrush="#23314B"
-                                        BorderThickness="1"
-                                        CornerRadius="16"
-                                        Padding="16"
+                                <Border Style="{StaticResource MetricTileStyle}"
                                         Margin="8,8,0,0">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource CaptionStyle}"
                                                    Text="监听状态" />
-                                        <TextBlock x:Name="StatusText"
-                                                   Margin="0,8,0,0"
+                                        <TextBlock Margin="0,8,0,0"
                                                    FontSize="20"
                                                    FontWeight="SemiBold"
-                                                   Foreground="#4ADE80"
-                                                   Text="监听中" />
+                                                   Foreground="{Binding ElementName=StatusText, Path=Foreground}"
+                                                   Text="{Binding ElementName=StatusText, Path=Text}" />
                                     </StackPanel>
                                 </Border>
                             </UniformGrid>
@@ -447,11 +587,7 @@
                                 </Border>
 
                                 <UniformGrid Margin="0,14,0,0" Columns="2">
-                                    <Border Background="#0B1527"
-                                            BorderBrush="#23314B"
-                                            BorderThickness="1"
-                                            CornerRadius="16"
-                                            Padding="16"
+                                    <Border Style="{StaticResource MetricTileStyle}"
                                             Margin="0,0,8,8">
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource CaptionStyle}" Text="设备数" />
@@ -463,11 +599,7 @@
                                                        Text="0" />
                                         </StackPanel>
                                     </Border>
-                                    <Border Background="#0B1527"
-                                            BorderBrush="#23314B"
-                                            BorderThickness="1"
-                                            CornerRadius="16"
-                                            Padding="16"
+                                    <Border Style="{StaticResource MetricTileStyle}"
                                             Margin="8,0,0,8">
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource CaptionStyle}" Text="最近发包数" />
@@ -479,11 +611,7 @@
                                                        Text="0" />
                                         </StackPanel>
                                     </Border>
-                                    <Border Background="#0B1527"
-                                            BorderBrush="#23314B"
-                                            BorderThickness="1"
-                                            CornerRadius="16"
-                                            Padding="16"
+                                    <Border Style="{StaticResource MetricTileStyle}"
                                             Margin="0,8,8,0">
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource CaptionStyle}" Text="波形数" />
@@ -495,11 +623,7 @@
                                                        Text="0" />
                                         </StackPanel>
                                     </Border>
-                                    <Border Background="#0B1527"
-                                            BorderBrush="#23314B"
-                                            BorderThickness="1"
-                                            CornerRadius="16"
-                                            Padding="16"
+                                    <Border Style="{StaticResource MetricTileStyle}"
                                             Margin="8,8,0,0">
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource CaptionStyle}" Text="规则数" />
@@ -536,11 +660,8 @@
                                        FontSize="13"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        Text="遥测样本: 0" />
-                            <Border Margin="0,14,0,0"
-                                    Background="#0B1527"
-                                    BorderBrush="#23314B"
-                                    BorderThickness="1"
-                                    CornerRadius="16"
+                            <Border Style="{StaticResource MetricTileStyle}"
+                                    Margin="0,14,0,0"
                                     Padding="14">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource CaptionStyle}" Text="设备遥测面板" />
@@ -573,11 +694,8 @@
                                        TextWrapping="Wrap"
                                        Foreground="#FCA5A5"
                                        Text="最近错误: 无" />
-                            <Border Margin="0,16,0,0"
-                                    Background="#0B1527"
-                                    BorderBrush="#23314B"
-                                    BorderThickness="1"
-                                    CornerRadius="16"
+                            <Border Style="{StaticResource MetricTileStyle}"
+                                    Margin="0,16,0,0"
                                     Padding="14">
                                 <TextBlock x:Name="ConfigPathText"
                                            FontSize="11"
@@ -591,25 +709,58 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <Border Grid.Column="2"
-                    Background="{StaticResource PanelBrush}"
-                    BorderBrush="{StaticResource BorderBrushStrong}"
+                <!-- 右侧专注编辑任务，设备、波形、规则都共用同一套工作台结构。 -->
+                <Border Grid.Column="2"
+                    Background="#081525"
+                    BorderBrush="#28405F"
                     BorderThickness="1"
-                    CornerRadius="28"
-                    Padding="22">
-                <Grid>
+                    CornerRadius="30"
+                    Padding="22"
+                    Effect="{StaticResource ShellShadowEffect}">
+                    <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="18" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel>
-                        <TextBlock FontSize="15"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   Text="工作区" />
-                    </StackPanel>
+                    <Border Background="#0C1B31"
+                            BorderBrush="#20324D"
+                            BorderThickness="1"
+                            CornerRadius="22"
+                            Padding="18,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           Text="工作区" />
+                                <TextBlock Margin="0,6,0,0"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Text="按模块切换，右侧专心处理当前设备、波形或规则。" />
+                            </StackPanel>
+
+                            <Border Grid.Column="1"
+                                    Background="#102745"
+                                    BorderBrush="#355C87"
+                                    BorderThickness="1"
+                                    CornerRadius="999"
+                                    Padding="14,8"
+                                    Margin="18,0,0,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#BFE3FF"
+                                           Text="设备 / 波形 / 规则" />
+                            </Border>
+                        </Grid>
+                    </Border>
 
                     <TabControl Grid.Row="2">
                         <TabItem Header="设备">
@@ -738,8 +889,8 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <Grid Margin="0,18,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="320" />
-                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="292" />
+                                    <ColumnDefinition Width="16" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
@@ -813,27 +964,7 @@
                                     </Border>
 
                                     <Grid Grid.Row="2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1.02*" />
-                                            <ColumnDefinition Width="20" />
-                                            <ColumnDefinition Width="1.18*" />
-                                        </Grid.ColumnDefinitions>
-
                                         <Border Style="{StaticResource WorkspaceCardStyle}">
-                                            <StackPanel>
-                                                <TextBlock Style="{StaticResource SectionTitleStyle}"
-                                                           Text="脚本编辑" />
-                                                <TextBox x:Name="WaveformScriptTextBox"
-                                                         Margin="0,14,0,0"
-                                                         AcceptsReturn="True"
-                                                         MinHeight="420"
-                                                         TextChanged="OnWaveformScriptTextChanged"
-                                                         TextWrapping="NoWrap"
-                                                         VerticalScrollBarVisibility="Auto" />
-                                            </StackPanel>
-                                        </Border>
-
-                                        <Border Grid.Column="2" Style="{StaticResource WorkspaceCardStyle}">
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto" />
@@ -865,6 +996,14 @@
                                                         <StackPanel x:Name="WaveformStepEditorPanel" />
                                                     </ScrollViewer>
                                                 </Border>
+
+                                                <!-- 这里保留隐藏脚本文本框，继续复用现有保存、预览和拖拽同步逻辑。 -->
+                                                <TextBox x:Name="WaveformScriptTextBox"
+                                                         Visibility="Collapsed"
+                                                         AcceptsReturn="True"
+                                                         TextChanged="OnWaveformScriptTextChanged"
+                                                         TextWrapping="NoWrap"
+                                                         VerticalScrollBarVisibility="Auto" />
                                             </Grid>
                                         </Border>
                                     </Grid>
@@ -982,6 +1121,83 @@
                                             <TextBlock Style="{StaticResource SectionTitleStyle}"
                                                        Text="规则编辑区" />
                                         </StackPanel>
+
+                                        <Grid x:Name="SpecificKeyModePanel" Grid.Row="2">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="18" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="18" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                                           Text="指定按键映射" />
+                                            </StackPanel>
+
+                                            <Border Grid.Row="2"
+                                                    Background="#091220"
+                                                    BorderBrush="#22314B"
+                                                    BorderThickness="1"
+                                                    CornerRadius="22"
+                                                    Padding="18">
+                                                <Viewbox Stretch="Uniform"
+                                                         StretchDirection="DownOnly"
+                                                         HorizontalAlignment="Left">
+                                                    <StackPanel x:Name="SpecificKeyKeyboardPanel" />
+                                                </Viewbox>
+                                            </Border>
+
+                                            <Border Grid.Row="4"
+                                                    Background="#0F1A2E"
+                                                    BorderBrush="#22314B"
+                                                    BorderThickness="1"
+                                                    CornerRadius="22"
+                                                    Padding="18">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="200" />
+                                                        <ColumnDefinition Width="20" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel>
+                                                        <TextBlock Style="{StaticResource CaptionStyle}"
+                                                                   Text="当前选中按键" />
+                                                        <TextBox x:Name="SpecificKeyTextBox"
+                                                                 Margin="0,8,0,0"
+                                                                 Height="42"
+                                                                 IsReadOnly="True"
+                                                                 Text="点击键帽选择按键" />
+
+                                                        <TextBlock x:Name="SpecificKeyBindingStatusText"
+                                                                   Margin="0,10,0,0"
+                                                                   Foreground="#8FA4C6"
+                                                                   FontSize="12"
+                                                                   Text="未选择按键" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Style="{StaticResource CaptionStyle}"
+                                                                   Text="按下波形" />
+                                                        <ComboBox x:Name="SpecificKeyWaveformComboBox"
+                                                                  Margin="0,8,0,0"
+                                                                  SelectionChanged="OnSpecificKeyWaveformSelectionChanged"
+                                                                  DisplayMemberPath="Name" />
+
+                                                        <UniformGrid Margin="0,16,0,0" Columns="2">
+                                                            <Button Margin="0,0,8,0"
+                                                                    Click="OnSaveSpecificKeyTriggerClicked"
+                                                                    Content="保存映射" />
+                                                            <Button Margin="8,0,0,0"
+                                                                    Click="OnDeleteSpecificKeyTriggerClicked"
+                                                                    Content="删除映射" />
+                                                        </UniformGrid>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
 
                                         <Grid x:Name="SpeedRuleEditorPanel" Grid.Row="2">
                                             <Grid.RowDefinitions>
@@ -1110,5 +1326,6 @@
                 </Grid>
             </Border>
         </Grid>
+    </Grid>
     </Grid>
 </Window>

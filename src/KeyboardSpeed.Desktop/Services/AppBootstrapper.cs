@@ -22,6 +22,7 @@ public sealed class AppBootstrapper : IDisposable
     private readonly DispatcherTimer _snapshotTimer;
     private readonly List<EmsWaveformDefinition> _waveforms;
     private readonly List<SpeedRangeRule> _speedRules;
+    private readonly List<SpecificKeyTriggerBinding> _specificKeyTriggers;
     private bool _disposed;
     private WaveformTriggerMode _triggerMode;
     private string _keypressWaveformId = string.Empty;
@@ -63,6 +64,10 @@ public sealed class AppBootstrapper : IDisposable
             ? AppSettings.CreateDefault().SpeedRules
             : settings.SpeedRules;
         _speedRules = SpeedRuleMetricNormalizer.NormalizeToCharactersPerMinute(loadedRules.Select(NormalizeRuntimeRuleBehavior)).ToList();
+        _specificKeyTriggers = NormalizeSpecificKeyTriggers(
+            settings.SpecificKeyTriggers,
+            settings.SpecificKeyVirtualKey,
+            settings.SpecificKeyWaveformId);
         _triggerMode = settings.TriggerMode;
         _keypressWaveformId = NormalizeKeypressWaveformId(settings.KeypressWaveformId);
         _idleTriggerEnabled = settings.IdleTriggerEnabled;
@@ -106,6 +111,8 @@ public sealed class AppBootstrapper : IDisposable
     public WaveformTriggerMode TriggerMode => _triggerMode;
 
     public string KeypressWaveformId => _keypressWaveformId;
+
+    public IReadOnlyList<SpecificKeyTriggerBinding> SpecificKeyTriggers => _specificKeyTriggers;
 
     public bool IdleTriggerEnabled => _idleTriggerEnabled;
 
@@ -240,6 +247,7 @@ public sealed class AppBootstrapper : IDisposable
         }
 
         _keypressWaveformId = NormalizeKeypressWaveformId(_keypressWaveformId);
+        ReplaceSpecificKeyTriggers(NormalizeSpecificKeyTriggers(_specificKeyTriggers, 0, null));
         _idleWaveformId = NormalizeIdleWaveformId(_idleWaveformId);
         ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
         await SaveSettingsAsync(cancellationToken);
@@ -254,6 +262,65 @@ public sealed class AppBootstrapper : IDisposable
 
         _triggerMode = mode;
         _keypressWaveformId = NormalizeKeypressWaveformId(keypressWaveformId);
+        if (mode == WaveformTriggerMode.SpecificKeypress)
+        {
+            _currentWaveformName = "未触发";
+        }
+        ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task AddOrUpdateSpecificKeyTriggerAsync(
+        int virtualKey,
+        string? waveformId,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        var normalizedVirtualKey = NormalizeSpecificKeyVirtualKey(virtualKey);
+        if (normalizedVirtualKey <= 0)
+        {
+            throw new InvalidOperationException("请先指定一个按键。");
+        }
+
+        var normalizedWaveformId = NormalizeSpecificKeyWaveformId(waveformId);
+        if (string.IsNullOrWhiteSpace(normalizedWaveformId))
+        {
+            throw new InvalidOperationException("请先选择一个波形。");
+        }
+
+        var existingIndex = _specificKeyTriggers.FindIndex(item => item.VirtualKey == normalizedVirtualKey);
+        var binding = new SpecificKeyTriggerBinding
+        {
+            VirtualKey = normalizedVirtualKey,
+            WaveformId = normalizedWaveformId
+        };
+
+        // 指定按键模式走“一个键一条映射”，同键保存时直接覆盖。
+        if (existingIndex >= 0)
+        {
+            _specificKeyTriggers[existingIndex] = binding;
+        }
+        else
+        {
+            _specificKeyTriggers.Add(binding);
+        }
+
+        ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task DeleteSpecificKeyTriggerAsync(int virtualKey, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        var normalizedVirtualKey = NormalizeSpecificKeyVirtualKey(virtualKey);
+        if (normalizedVirtualKey <= 0)
+        {
+            return;
+        }
+
+        _specificKeyTriggers.RemoveAll(item => item.VirtualKey == normalizedVirtualKey);
         ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
         await SaveSettingsAsync(cancellationToken);
     }
@@ -329,10 +396,15 @@ public sealed class AppBootstrapper : IDisposable
 
     private void HandleKeystrokeCaptured(object? sender, KeystrokeCapturedEventArgs e)
     {
-        LastKeystrokeAt = e.Timestamp;
-        _idleTriggerDispatched = false;
-        _typingSpeedCalculator.RecordKeystroke(e.Timestamp);
-        DispatchKeypressWaveformIfNeeded();
+        // 触发模式要能拿到所有按键，但键速和空闲提醒只认有效输入键。
+        if (e.IsCounted)
+        {
+            LastKeystrokeAt = e.Timestamp;
+            _idleTriggerDispatched = false;
+            _typingSpeedCalculator.RecordKeystroke(e.Timestamp);
+        }
+
+        DispatchKeypressWaveformIfNeeded(e);
         PublishSnapshot(e.Timestamp);
     }
 
@@ -374,6 +446,10 @@ public sealed class AppBootstrapper : IDisposable
         {
             ApplyAnyKeypressModeState();
         }
+        else if (_triggerMode == WaveformTriggerMode.SpecificKeypress)
+        {
+            ApplySpecificKeypressModeState();
+        }
         else
         {
             ApplySpeedRules(snapshot, now);
@@ -414,9 +490,13 @@ public sealed class AppBootstrapper : IDisposable
         _ = _bleDeviceManager.PlayWaveformAsync(waveform);
     }
 
-    private void DispatchKeypressWaveformIfNeeded()
+    private void DispatchKeypressWaveformIfNeeded(KeystrokeCapturedEventArgs keystroke)
     {
-        var evaluation = _waveformTriggerRouter.EvaluateKeystroke(_triggerMode, _keypressWaveformId);
+        // 这里统一做按键触发分流，避免把“任意按键”和“指定按键”拆成两套分支。
+        var evaluation = _waveformTriggerRouter.EvaluateKeystroke(
+            _triggerMode,
+            _keypressWaveformId,
+            ResolveSpecificKeyWaveformId(keystroke.VirtualKey));
         if (!evaluation.ShouldDispatch || string.IsNullOrWhiteSpace(evaluation.WaveformId))
         {
             return;
@@ -428,7 +508,7 @@ public sealed class AppBootstrapper : IDisposable
             return;
         }
 
-        _currentRuleName = "按键即触发";
+        _currentRuleName = _triggerMode == WaveformTriggerMode.SpecificKeypress ? "指定按键触发" : "按键即触发";
         _currentWaveformName = waveform.Name;
         if (!_bleDeviceManager.CurrentStatus.IsConnected)
         {
@@ -442,6 +522,11 @@ public sealed class AppBootstrapper : IDisposable
     {
         _currentRuleName = "按键即触发";
         _currentWaveformName = ResolveWaveformById(_keypressWaveformId)?.Name ?? "未触发";
+    }
+
+    private void ApplySpecificKeypressModeState()
+    {
+        _currentRuleName = "指定按键触发";
     }
 
     private void ApplyIdleTriggerIfNeeded(DateTimeOffset now)
@@ -494,6 +579,9 @@ public sealed class AppBootstrapper : IDisposable
         {
             TriggerMode = _triggerMode,
             KeypressWaveformId = NormalizeKeypressWaveformId(_keypressWaveformId),
+            SpecificKeyVirtualKey = 0,
+            SpecificKeyWaveformId = string.Empty,
+            SpecificKeyTriggers = _specificKeyTriggers.ToList(),
             IdleTriggerEnabled = _idleTriggerEnabled,
             IdleTriggerTimeoutMs = NormalizeIdleTriggerTimeoutMs(_idleTriggerTimeoutMs),
             IdleWaveformId = NormalizeIdleWaveformId(_idleWaveformId),
@@ -511,6 +599,79 @@ public sealed class AppBootstrapper : IDisposable
     private string NormalizeKeypressWaveformId(string? waveformId)
     {
         return ResolveWaveformById(waveformId)?.Id ?? string.Empty;
+    }
+
+    private string NormalizeSpecificKeyWaveformId(string? waveformId)
+    {
+        return ResolveWaveformById(waveformId)?.Id ?? string.Empty;
+    }
+
+    private string? ResolveSpecificKeyWaveformId(int virtualKey)
+    {
+        return _specificKeyTriggers
+            .FirstOrDefault(item => item.VirtualKey == virtualKey)?
+            .WaveformId;
+    }
+
+    private static int NormalizeSpecificKeyVirtualKey(int virtualKey)
+    {
+        return virtualKey > 0 ? virtualKey : 0;
+    }
+
+    private List<SpecificKeyTriggerBinding> NormalizeSpecificKeyTriggers(
+        IReadOnlyList<SpecificKeyTriggerBinding>? specificKeyTriggers,
+        int legacyVirtualKey,
+        string? legacyWaveformId)
+    {
+        var normalized = new List<SpecificKeyTriggerBinding>();
+
+        // 先吃新结构；如果用户还留着旧配置，再自动迁进来，避免升级后丢设置。
+        if (specificKeyTriggers is not null)
+        {
+            foreach (var trigger in specificKeyTriggers)
+            {
+                AddOrReplaceSpecificKeyTrigger(normalized, trigger.VirtualKey, trigger.WaveformId);
+            }
+        }
+
+        if (normalized.Count == 0 && legacyVirtualKey > 0)
+        {
+            AddOrReplaceSpecificKeyTrigger(normalized, legacyVirtualKey, legacyWaveformId);
+        }
+
+        return normalized;
+    }
+
+    private void ReplaceSpecificKeyTriggers(List<SpecificKeyTriggerBinding> normalizedTriggers)
+    {
+        _specificKeyTriggers.Clear();
+        _specificKeyTriggers.AddRange(normalizedTriggers);
+    }
+
+    private void AddOrReplaceSpecificKeyTrigger(List<SpecificKeyTriggerBinding> bindings, int virtualKey, string? waveformId)
+    {
+        var normalizedVirtualKey = NormalizeSpecificKeyVirtualKey(virtualKey);
+        var normalizedWaveformId = NormalizeSpecificKeyWaveformId(waveformId);
+        if (normalizedVirtualKey <= 0 || string.IsNullOrWhiteSpace(normalizedWaveformId))
+        {
+            return;
+        }
+
+        var existingIndex = bindings.FindIndex(item => item.VirtualKey == normalizedVirtualKey);
+        var binding = new SpecificKeyTriggerBinding
+        {
+            VirtualKey = normalizedVirtualKey,
+            WaveformId = normalizedWaveformId
+        };
+
+        if (existingIndex >= 0)
+        {
+            bindings[existingIndex] = binding;
+        }
+        else
+        {
+            bindings.Add(binding);
+        }
     }
 
     private string NormalizeIdleWaveformId(string? waveformId)

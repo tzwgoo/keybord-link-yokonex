@@ -23,6 +23,21 @@ public sealed class SettingsStoreTests : IDisposable
         {
             TriggerMode = WaveformTriggerMode.AnyKeypress,
             KeypressWaveformId = "soft-pulse",
+            SpecificKeyVirtualKey = 0x11,
+            SpecificKeyWaveformId = "wave-cascade",
+            SpecificKeyTriggers =
+            [
+                new SpecificKeyTriggerBinding
+                {
+                    VirtualKey = 0x11,
+                    WaveformId = "wave-cascade"
+                },
+                new SpecificKeyTriggerBinding
+                {
+                    VirtualKey = 0x12,
+                    WaveformId = "idle-jolt"
+                }
+            ],
             IdleTriggerEnabled = true,
             IdleTriggerTimeoutMs = 2400,
             IdleWaveformId = "heartbeat",
@@ -68,6 +83,11 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Single(loaded.Waveforms);
         Assert.Equal(WaveformTriggerMode.AnyKeypress, loaded.TriggerMode);
         Assert.Equal("soft-pulse", loaded.KeypressWaveformId);
+        Assert.Equal(0x11, loaded.SpecificKeyVirtualKey);
+        Assert.Equal("wave-cascade", loaded.SpecificKeyWaveformId);
+        Assert.Equal(2, loaded.SpecificKeyTriggers.Count);
+        Assert.Equal(0x12, loaded.SpecificKeyTriggers[1].VirtualKey);
+        Assert.Equal("idle-jolt", loaded.SpecificKeyTriggers[1].WaveformId);
         Assert.True(loaded.IdleTriggerEnabled);
         Assert.Equal(2400, loaded.IdleTriggerTimeoutMs);
         Assert.Equal("heartbeat", loaded.IdleWaveformId);
@@ -85,6 +105,16 @@ public sealed class SettingsStoreTests : IDisposable
         {
             TriggerMode = WaveformTriggerMode.SpeedRules,
             KeypressWaveformId = "heartbeat",
+            SpecificKeyVirtualKey = 0x20,
+            SpecificKeyWaveformId = "soft-pulse",
+            SpecificKeyTriggers =
+            [
+                new SpecificKeyTriggerBinding
+                {
+                    VirtualKey = 0x20,
+                    WaveformId = "soft-pulse"
+                }
+            ],
             IdleTriggerEnabled = true,
             IdleTriggerTimeoutMs = 1800,
             IdleWaveformId = "soft-pulse",
@@ -129,6 +159,10 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Single(loaded.Waveforms);
         Assert.Equal(WaveformTriggerMode.SpeedRules, loaded.TriggerMode);
         Assert.Equal("heartbeat", loaded.KeypressWaveformId);
+        Assert.Equal(0x20, loaded.SpecificKeyVirtualKey);
+        Assert.Equal("soft-pulse", loaded.SpecificKeyWaveformId);
+        Assert.Single(loaded.SpecificKeyTriggers);
+        Assert.Equal(0x20, loaded.SpecificKeyTriggers[0].VirtualKey);
         Assert.True(loaded.IdleTriggerEnabled);
         Assert.Equal(1800, loaded.IdleTriggerTimeoutMs);
         Assert.Equal("soft-pulse", loaded.IdleWaveformId);
@@ -143,6 +177,14 @@ public sealed class SettingsStoreTests : IDisposable
         var settings = AppSettings.CreateDefault();
 
         Assert.Equal("idle-jolt", settings.IdleWaveformId);
+    }
+
+    [Fact]
+    public void AppSettings_Defaults_ShouldInitializeSpecificKeyTriggerList()
+    {
+        var settings = AppSettings.CreateDefault();
+
+        Assert.Empty(settings.SpecificKeyTriggers);
     }
 
     public void Dispose()

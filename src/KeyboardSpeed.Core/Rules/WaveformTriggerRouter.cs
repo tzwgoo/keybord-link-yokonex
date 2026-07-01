@@ -20,7 +20,7 @@ public sealed class WaveformTriggerRouter
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(rules);
 
-        if (mode == WaveformTriggerMode.AnyKeypress)
+        if (mode != WaveformTriggerMode.SpeedRules)
         {
             return new RuleEvaluationResult(null, false, false, null);
         }
@@ -28,13 +28,27 @@ public sealed class WaveformTriggerRouter
         return _speedRuleCoordinator.Evaluate(snapshot, rules, now);
     }
 
-    public RuleEvaluationResult EvaluateKeystroke(WaveformTriggerMode mode, string? waveformId)
+    public RuleEvaluationResult EvaluateKeystroke(
+        WaveformTriggerMode mode,
+        string? keypressWaveformId,
+        string? specificKeyWaveformId)
     {
-        if (mode != WaveformTriggerMode.AnyKeypress || string.IsNullOrWhiteSpace(waveformId))
+        if (mode == WaveformTriggerMode.AnyKeypress && !string.IsNullOrWhiteSpace(keypressWaveformId))
+        {
+            return new RuleEvaluationResult(null, true, false, keypressWaveformId);
+        }
+
+        if (mode == WaveformTriggerMode.SpecificKeypress &&
+            !string.IsNullOrWhiteSpace(specificKeyWaveformId))
+        {
+            return new RuleEvaluationResult(null, true, false, specificKeyWaveformId);
+        }
+
+        if (mode != WaveformTriggerMode.AnyKeypress && mode != WaveformTriggerMode.SpecificKeypress)
         {
             return new RuleEvaluationResult(null, false, false, null);
         }
 
-        return new RuleEvaluationResult(null, true, false, waveformId);
+        return new RuleEvaluationResult(null, false, false, null);
     }
 }

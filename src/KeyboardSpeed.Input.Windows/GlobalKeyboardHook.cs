@@ -79,9 +79,13 @@ public sealed class GlobalKeyboardHook : IDisposable
             (wParam == NativeMethods.WmKeyDown || wParam == NativeMethods.WmSysKeyDown))
         {
             var hookData = Marshal.PtrToStructure<NativeMethods.KbdLlHookStruct>(lParam);
+            var virtualKey = unchecked((int)hookData.VkCode);
             KeyDown?.Invoke(
                 this,
-                new KeystrokeCapturedEventArgs(DateTimeOffset.UtcNow, unchecked((int)hookData.VkCode)));
+                new KeystrokeCapturedEventArgs(
+                    DateTimeOffset.UtcNow,
+                    virtualKey,
+                    KeyboardInputClassifier.ShouldCount(virtualKey)));
         }
 
         return NativeMethods.CallNextHookEx(_hookHandle, nCode, wParam, lParam);
