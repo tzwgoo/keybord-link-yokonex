@@ -83,6 +83,19 @@ dotnet publish .\src\KeyboardSpeed.Desktop\KeyboardSpeed.Desktop.csproj `
 
 - `artifacts/`
 
+GitHub 自动发版：
+
+- 推送符合 `v*` 的 tag 会触发 GitHub Action
+- Action 会自动执行测试、发布 `win-x64` 自包含单文件版本、打包 zip
+- 然后自动创建 GitHub Release 并上传产物
+
+示例：
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
 ## 配置与日志
 
 应用设置文件：

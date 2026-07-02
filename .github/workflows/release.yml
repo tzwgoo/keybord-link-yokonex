@@ -1,0 +1,65 @@
+name: Build And Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore .\KeyboardSpeed-YOKONEX.slnx
+
+      - name: Test
+        run: dotnet test .\tests\KeyboardSpeed.Tests\KeyboardSpeed.Tests.csproj --configuration Release --no-restore
+
+      - name: Publish Desktop App
+        shell: pwsh
+        run: |
+          # 统一发布到 artifacts，后面的压缩和上传都走这里。
+          $publishDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish\win-x64"
+          dotnet publish .\src\KeyboardSpeed.Desktop\KeyboardSpeed.Desktop.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            --output $publishDir
+
+      - name: Package Release Asset
+        id: package
+        shell: pwsh
+        run: |
+          # 用 tag 名带上压缩包版本，方便在 Release 页面直接识别。
+          $tag = "${{ github.ref_name }}"
+          $assetName = "KeyboardSpeed-YOKONEX-$tag-win-x64.zip"
+          $publishDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish\win-x64"
+          $assetPath = Join-Path $env:GITHUB_WORKSPACE ("artifacts\" + $assetName)
+
+          if (Test-Path $assetPath) {
+            Remove-Item -LiteralPath $assetPath -Force
+          }
+
+          Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $assetPath -Force
+          "asset_path=$assetPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "asset_name=$assetName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: ${{ steps.package.outputs.asset_path }}
