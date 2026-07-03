@@ -15,6 +15,7 @@ namespace KeyboardSpeed.Desktop;
 
 public partial class MainWindow : Window
 {
+    private const int WaveformMaxStrength = 180;
     private const double WaveformPreviewPadding = WaveformDragEditorLogic.DefaultPadding;
     private const double KeyboardKeyWidth = 44d;
     private const double KeyboardKeyHeight = 44d;
@@ -1078,8 +1079,8 @@ public partial class MainWindow : Window
         // 这里统一按设备真实量程回写脚本，避免步骤卡片把超上限强度继续写回编辑器。
         var normalizedSteps = steps.Select(static step => step with
         {
-            AStrength = EmsWaveformStep.ClampStrength(step.AStrength),
-            BStrength = EmsWaveformStep.ClampStrength(step.BStrength)
+            AStrength = ClampWaveformStrength(step.AStrength),
+            BStrength = ClampWaveformStrength(step.BStrength)
         }).ToList();
         SetWaveformEditorValues(WaveformNameTextBox.Text, WaveformScriptSerializer.Serialize(normalizedSteps));
         RenderWaveformPreviewFromEditor();
@@ -1410,12 +1411,17 @@ public partial class MainWindow : Window
 
     private static double GetStrengthRatio(int strength)
     {
-        return EmsWaveformStep.ClampStrength(strength) / (double)EmsWaveformStep.MaxStrength;
+        return ClampWaveformStrength(strength) / (double)WaveformMaxStrength;
     }
 
     private static string FormatStrengthDisplay(int strength)
     {
-        return $"{strength}/{EmsWaveformStep.MaxStrength}";
+        return $"{ClampWaveformStrength(strength)}/{WaveformMaxStrength}";
+    }
+
+    private static int ClampWaveformStrength(int strength)
+    {
+        return Math.Clamp(strength, 0, WaveformMaxStrength);
     }
 
     private WaveformTriggerMode GetSelectedTriggerMode()
