@@ -11,66 +11,66 @@
         MinHeight="820"
         MinWidth="1360"
         WindowStartupLocation="CenterScreen"
-        Background="#040B16"
+        Background="#F5F8FC"
         FontFamily="Microsoft YaHei UI">
     <Window.Resources>
-        <SolidColorBrush x:Key="WindowBrush" Color="#07111F" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#0C1729" />
-        <SolidColorBrush x:Key="CardBrush" Color="#101D34" />
-        <SolidColorBrush x:Key="CardSoftBrush" Color="#13233E" />
-        <SolidColorBrush x:Key="CardAltBrush" Color="#0B1527" />
-        <SolidColorBrush x:Key="BorderBrushStrong" Color="#243554" />
-        <SolidColorBrush x:Key="BorderBrushSoft" Color="#1B2944" />
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F8FAFC" />
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A9B8D3" />
-        <SolidColorBrush x:Key="InputTextBrush" Color="#0B1527" />
+        <SolidColorBrush x:Key="WindowBrush" Color="#F7FAFC" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#EEF4FA" />
+        <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="CardSoftBrush" Color="#F8FBFF" />
+        <SolidColorBrush x:Key="CardAltBrush" Color="#F7FAFD" />
+        <SolidColorBrush x:Key="BorderBrushStrong" Color="#D4E0EC" />
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#E3EBF3" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#0F172A" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#5B6B7F" />
+        <SolidColorBrush x:Key="InputTextBrush" Color="#0F172A" />
         <SolidColorBrush x:Key="AccentBrush" Color="#4FD1C5" />
         <SolidColorBrush x:Key="AccentWarmBrush" Color="#F59E0B" />
         <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Offset="0" Color="#040B16" />
-            <GradientStop Offset="0.45" Color="#071425" />
-            <GradientStop Offset="1" Color="#03101C" />
+            <GradientStop Offset="0" Color="#F7FAFC" />
+            <GradientStop Offset="0.45" Color="#F3F7FB" />
+            <GradientStop Offset="1" Color="#EDF3F8" />
         </LinearGradientBrush>
         <LinearGradientBrush x:Key="HeaderPanelBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Offset="0" Color="#0E1D34" />
-            <GradientStop Offset="0.55" Color="#0A172C" />
-            <GradientStop Offset="1" Color="#0B1E33" />
+            <GradientStop Offset="0" Color="#FFFFFF" />
+            <GradientStop Offset="0.55" Color="#F7FAFD" />
+            <GradientStop Offset="1" Color="#F3F8FD" />
         </LinearGradientBrush>
         <LinearGradientBrush x:Key="HeroBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Offset="0" Color="#132A56" />
-            <GradientStop Offset="0.55" Color="#183563" />
-            <GradientStop Offset="1" Color="#0D7C87" />
+            <GradientStop Offset="0" Color="#EAF5FF" />
+            <GradientStop Offset="0.55" Color="#F0F8FF" />
+            <GradientStop Offset="1" Color="#E8FFFB" />
         </LinearGradientBrush>
         <DropShadowEffect x:Key="ShellShadowEffect"
                           BlurRadius="36"
                           ShadowDepth="0"
-                          Color="#020817"
+                          Color="#7A8AA0"
                           Opacity="0.42" />
         <DropShadowEffect x:Key="CardShadowEffect"
                           BlurRadius="22"
                           ShadowDepth="0"
-                          Color="#020817"
+                          Color="#7A8AA0"
                           Opacity="0.28" />
 
         <Style x:Key="CardBorderStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="22" />
             <Setter Property="Padding" Value="22" />
-            <Setter Property="Background" Value="#0E1A31" />
-            <Setter Property="BorderBrush" Value="#213654" />
+            <Setter Property="Background" Value="{StaticResource CardBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushStrong}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Effect" Value="{StaticResource CardShadowEffect}" />
         </Style>
 
         <Style x:Key="WorkspaceCardStyle" TargetType="Border" BasedOn="{StaticResource CardBorderStyle}">
             <Setter Property="Padding" Value="24" />
-            <Setter Property="Background" Value="#0D1B31" />
-            <Setter Property="BorderBrush" Value="#28405F" />
+            <Setter Property="Background" Value="{StaticResource CardSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
             <Setter Property="CornerRadius" Value="26" />
         </Style>
 
         <Style x:Key="MetricTileStyle" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource CardAltBrush}" />
-            <Setter Property="BorderBrush" Value="#22324E" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="18" />
             <Setter Property="Padding" Value="16" />
@@ -89,8 +89,8 @@
 
         <Style TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background" Value="#17314F" />
-            <Setter Property="BorderBrush" Value="#325782" />
+            <Setter Property="Background" Value="#F7FAFD" />
+            <Setter Property="BorderBrush" Value="#D0DDEA" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="16,10" />
             <Setter Property="Margin" Value="0" />
@@ -114,12 +114,12 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#214267" />
-                    <Setter Property="BorderBrush" Value="#58D9CB" />
+                    <Setter Property="Background" Value="#EDF5FD" />
+                    <Setter Property="BorderBrush" Value="#8CB6DA" />
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#112741" />
-                    <Setter Property="BorderBrush" Value="#7DD3FC" />
+                    <Setter Property="Background" Value="#E3EEF9" />
+                    <Setter Property="BorderBrush" Value="#5E8FBE" />
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.45" />
@@ -129,8 +129,8 @@
 
         <Style TargetType="TextBox">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background" Value="#0B1527" />
-            <Setter Property="BorderBrush" Value="#334768" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D0DDEA" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="FontSize" Value="13" />
@@ -138,8 +138,8 @@
 
         <Style TargetType="ComboBox">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background" Value="#0A1426" />
-            <Setter Property="BorderBrush" Value="#32507B" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D0DDEA" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="FontSize" Value="13" />
@@ -148,17 +148,17 @@
 
         <Style TargetType="ComboBoxItem">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background" Value="#0B1527" />
+            <Setter Property="Background" Value="#FFFFFF" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Style.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="#17365D" />
-                    <Setter Property="Foreground" Value="{StaticResource InputTextBrush}" />
+                    <Setter Property="Background" Value="#EEF6FF" />
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#23406A" />
-                    <Setter Property="Foreground" Value="{StaticResource InputTextBrush}" />
+                    <Setter Property="Background" Value="#E2F0FF" />
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -187,8 +187,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="TabBorder"
-                                Background="#0D1B31"
-                                BorderBrush="#243754"
+                                Background="#FFFFFF"
+                                BorderBrush="#D7E2EF"
                                 BorderThickness="1"
                                 CornerRadius="16"
                                 Padding="{TemplateBinding Padding}">
@@ -198,12 +198,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBorder" Property="Background" Value="#153757" />
-                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#58D9CB" />
+                                <Setter TargetName="TabBorder" Property="Background" Value="#EAF4FF" />
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#8CB6DA" />
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#4F77A8" />
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#A8C4DD" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -213,380 +213,282 @@
     </Window.Resources>
 
     <Grid Background="{StaticResource WindowBackgroundBrush}">
-        <Grid IsHitTestVisible="False">
-            <Ellipse Width="520"
-                     Height="520"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Top"
-                     Margin="0,-160,-120,0"
-                     Fill="#153B67"
-                     Opacity="0.18" />
-            <Ellipse Width="420"
-                     Height="420"
-                     HorizontalAlignment="Left"
-                     VerticalAlignment="Bottom"
-                     Margin="-140,0,0,-180"
-                     Fill="#0D7C87"
-                     Opacity="0.14" />
-        </Grid>
-
-        <Grid Margin="28">
+        <Grid Margin="32">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="22" />
+                <RowDefinition Height="20" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <Border Background="{StaticResource HeaderPanelBrush}"
-                    BorderBrush="#28405F"
+                    BorderBrush="{StaticResource BorderBrushSoft}"
                     BorderThickness="1"
-                    CornerRadius="32"
-                    Padding="28"
+                    CornerRadius="24"
+                    Padding="22"
                     Effect="{StaticResource ShellShadowEffect}">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="16" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="28" />
-                        <ColumnDefinition Width="340" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="360" />
                     </Grid.ColumnDefinitions>
 
-                    <Grid>
+                    <Border Width="54"
+                            Height="54"
+                            Background="#FAFCFF"
+                            BorderBrush="{StaticResource BorderBrushSoft}"
+                            BorderThickness="1"
+                            CornerRadius="18"
+                            Padding="10"
+                            VerticalAlignment="Top">
+                        <Image Source="Assets/yokonex-logo.png"
+                               Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel Grid.Column="2"
+                                VerticalAlignment="Center">
+                        <TextBlock FontSize="12"
+                                   Foreground="#4C84B3"
+                                   Text="YOKONEX · BLE CONTROL STUDIO" />
+                        <TextBlock Margin="0,8,0,0"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                    Text="键盘测速与波形联动工作台" />
+                    </StackPanel>
+
+                    <Grid Grid.Column="4">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="78" />
-                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Width="78"
-                                Height="78"
-                                Background="#F8FAFC"
-                                CornerRadius="24"
-                                Padding="10"
-                                VerticalAlignment="Top">
-                            <Image Source="Assets/yokonex-logo.png"
-                                   Stretch="Uniform" />
+                        <Border Background="#FAFCFF"
+                                BorderBrush="{StaticResource BorderBrushSoft}"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="14">
+                            <StackPanel>
+                                <TextBlock FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Text="监听状态" />
+                                <TextBlock x:Name="HeaderListeningBadge"
+                                           Margin="0,8,0,0"
+                                           FontSize="20"
+                                           FontWeight="SemiBold"
+                                           Foreground="#0F766E"
+                                           Text="监听中" />
+                            </StackPanel>
                         </Border>
 
-                        <StackPanel Grid.Column="2"
-                                    VerticalAlignment="Center">
-                            <TextBlock FontSize="14"
-                                       Foreground="#7DD3FC"
-                                       Text="YOKONEX · BLE CONTROL STUDIO" />
-                            <TextBlock Margin="0,10,0,0"
-                                       FontSize="34"
-                                       FontWeight="Bold"
-                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                       Text="键盘测速与波形联动工作台" />
-                            <TextBlock Margin="0,10,0,0"
-                                       FontSize="13"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       Text="实时测速、设备控制、波形编辑和规则联动都集中在一个工作台里。" />
-                        </StackPanel>
-                    </Grid>
-
-                    <Border Grid.Column="2"
-                            Background="#0B172B"
-                            BorderBrush="#213552"
-                            BorderThickness="1"
-                            CornerRadius="24"
-                            Padding="18">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="18" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
+                        <Border Grid.Column="2"
+                                Background="#FAFCFF"
+                                BorderBrush="{StaticResource BorderBrushSoft}"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="14">
                             <StackPanel>
-                                <TextBlock FontSize="12"
-                                           Foreground="#8FB2DA"
-                                           Text="键盘监听" />
-                                <TextBlock x:Name="HeaderListeningBadge"
-                                           Margin="0,10,0,0"
-                                           FontSize="22"
-                                           FontWeight="SemiBold"
-                                           Foreground="#D1FAE5"
-                                           Text="监听中" />
-                                <TextBlock Margin="0,8,0,0"
-                                           FontSize="12"
+                                <TextBlock FontSize="11"
                                            Foreground="{StaticResource TextSecondaryBrush}"
-                                           Text="主状态始终固定显示" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2">
-                                <TextBlock FontSize="12"
-                                           Foreground="#8FB2DA"
                                            Text="设备连接" />
                                 <TextBlock x:Name="HeaderDeviceBadge"
-                                           Margin="0,10,0,0"
-                                           FontSize="18"
+                                           Margin="0,8,0,0"
+                                           FontSize="14"
                                            FontWeight="SemiBold"
-                                           Foreground="#E2E8F0"
+                                           Foreground="#334155"
                                            TextWrapping="Wrap"
                                            Text="设备未连接" />
-                                <TextBlock Margin="0,8,0,0"
-                                           FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           Text="连接后这里会立即同步" />
                             </StackPanel>
-                        </Grid>
-                    </Border>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
 
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="336" />
-                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="320" />
+                    <ColumnDefinition Width="20" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- 左侧固定展示运行态概览，切换工作标签时核心指标不会丢。 -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel>
-                        <StackPanel Margin="0,2,0,0">
-                            <TextBlock FontSize="15"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                       Text="运行概览" />
-                            <TextBlock Margin="0,6,0,0"
-                                       FontSize="12"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       Text="左侧只放实时状态和摘要，方便边操作边看反馈。" />
-                        </StackPanel>
-
-                    <Border Style="{StaticResource CardBorderStyle}"
-                            Margin="0,18,0,0"
-                            Background="{StaticResource HeroBrush}">
+                    <!-- 左侧把实时状态合并成单面板，减少来回切换时的视觉跳跃。 -->
+                    <Border Style="{StaticResource CardBorderStyle}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="20" />
+                                <RowDefinition Height="18" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="18" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="12" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                           Text="实时概览" />
+                                <TextBlock x:Name="CpmText"
+                                           Margin="0,22,0,0"
+                                           FontSize="52"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           Text="0" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Style="{StaticResource CaptionStyle}"
+                                           Text="键/分钟" />
 
-                                <StackPanel>
-                                    <TextBlock FontSize="13"
-                                               Foreground="#BFDBFE"
-                                               Text="实时输入热区" />
-                                    <TextBlock Margin="0,12,0,0"
-                                               FontSize="23"
-                                               FontWeight="SemiBold"
-                                               Foreground="#FFFFFF"
-                                               Text="把当前打字节奏放到最显眼的位置" />
-                                </StackPanel>
-
-                                <Border Grid.Column="2"
-                                        Background="#102745"
-                                        BorderBrush="#5C86BB"
-                                        BorderThickness="1"
-                                        CornerRadius="999"
-                                        Padding="14,8"
-                                        VerticalAlignment="Top">
-                                    <TextBlock FontSize="12"
-                                               FontWeight="SemiBold"
-                                               Foreground="#D1FAE5"
-                                               Text="{Binding ElementName=HeaderListeningBadge, Path=Text}" />
-                                </Border>
-                            </Grid>
-
-                            <Grid Grid.Row="2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="12" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                        <Border Background="#12284A"
-                                                BorderBrush="#547CB3"
-                                                BorderThickness="1"
-                                                CornerRadius="18"
-                                                Padding="18">
-                                    <StackPanel>
-                                        <TextBlock FontSize="12"
-                                                   Foreground="#BFDBFE"
-                                                   Text="键/分钟" />
-                                        <TextBlock x:Name="CpmText"
-                                                   Margin="0,10,0,0"
-                                                   FontSize="42"
-                                                   FontWeight="Bold"
-                                                   Foreground="#FFFFFF"
-                                                   Text="0" />
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Grid.Column="2"
-                                        Background="#123540"
-                                        BorderBrush="#4FD1C5"
-                                        BorderThickness="1"
-                                        CornerRadius="18"
-                                        Padding="18">
-                                    <StackPanel>
-                                        <TextBlock FontSize="12"
-                                                   Foreground="#CFFAFE"
-                                                   Text="30 秒趋势" />
-                                        <TextBlock x:Name="TrendHeroText"
-                                                   Margin="0,10,0,0"
-                                                   FontSize="42"
-                                                   FontWeight="Bold"
-                                                   Foreground="#FFFFFF"
-                                                   Text="0" />
-                                            </StackPanel>
-                                        </Border>
-                                    </Grid>
-
-                            <Border Grid.Row="4"
-                                    Background="#0E223F"
-                                    BorderBrush="#42658E"
-                                    BorderThickness="1"
-                                    CornerRadius="18"
-                                    Padding="16">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel>
-                                        <TextBlock FontSize="12"
-                                                   Foreground="#BFDBFE"
-                                                   Text="当前工作节奏" />
-                                        <TextBlock Margin="0,8,0,0"
-                                                   FontSize="13"
-                                                   Foreground="#D9E8FF"
-                                                   Text="监听状态、输入趋势和标签编辑区会保持同步更新。" />
-                                    </StackPanel>
-
-                                    <Border Grid.Column="1"
-                                            Background="#14304F"
-                                            BorderBrush="#4FD1C5"
-                                            BorderThickness="1"
-                                            CornerRadius="16"
-                                            Padding="12,8"
-                                            Margin="16,0,0,0"
-                                            VerticalAlignment="Center">
-                                        <TextBlock x:Name="StatusText"
-                                                   FontSize="13"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#4ADE80"
-                                                   Text="监听中" />
+                                <UniformGrid Margin="0,20,0,0"
+                                             Columns="2">
+                                    <Border Style="{StaticResource MetricTileStyle}"
+                                            Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Visibility="Collapsed"
+                                                       Text="30 秒趋势" />
+                                            <TextBlock Style="{StaticResource CaptionStyle}"
+                                                       Text="30 秒趋势键/分钟" />
+                                            <TextBlock x:Name="TrendHeroText"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="24"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       Text="0" />
+                                        </StackPanel>
                                     </Border>
-                                </Grid>
-                            </Border>
-                        </Grid>
-                    </Border>
 
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,22,0,0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="16" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                                    <Border Style="{StaticResource MetricTileStyle}"
+                                            Margin="8,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource CaptionStyle}"
+                                                       Text="监听状态" />
+                                            <TextBlock x:Name="StatusText"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F766E"
+                                                       Text="监听中" />
+                                        </StackPanel>
+                                    </Border>
 
-                            <TextBlock Style="{StaticResource SectionTitleStyle}"
-                                       Text="输入总览" />
+                                    <Border Style="{StaticResource MetricTileStyle}"
+                                            Margin="0,8,8,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource CaptionStyle}"
+                                                       Text="样本数" />
+                                            <TextBlock x:Name="SamplesText"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="20"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       Text="0" />
+                                        </StackPanel>
+                                    </Border>
 
-                            <UniformGrid Grid.Row="2" Columns="2">
-                                <Border Style="{StaticResource MetricTileStyle}"
-                                        Margin="0,0,8,8">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource CaptionStyle}"
-                                                   Text="10 秒窗口样本" />
-                                        <TextBlock x:Name="SamplesText"
-                                                   Margin="0,8,0,0"
-                                                   FontSize="24"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   Text="0" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource MetricTileStyle}"
-                                        Margin="8,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource CaptionStyle}"
-                                                   Text="30 秒趋势键/分钟" />
-                                        <TextBlock x:Name="TrendText"
-                                                   Margin="0,8,0,0"
-                                                   FontSize="24"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   Text="0" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource MetricTileStyle}"
-                                        Margin="0,8,8,0">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource CaptionStyle}"
-                                                   Text="最近按键时间" />
-                                        <TextBlock x:Name="LastKeyText"
-                                                   Margin="0,8,0,0"
-                                                   FontSize="20"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   Text="--:--:--" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource MetricTileStyle}"
-                                        Margin="8,8,0,0">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource CaptionStyle}"
-                                                   Text="监听状态" />
-                                        <TextBlock Margin="0,8,0,0"
-                                                   FontSize="20"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding ElementName=StatusText, Path=Foreground}"
-                                                   Text="{Binding ElementName=StatusText, Path=Text}" />
-                                    </StackPanel>
-                                </Border>
-                            </UniformGrid>
-                        </Grid>
-                    </Border>
+                                    <Border Style="{StaticResource MetricTileStyle}"
+                                            Margin="8,8,0,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource CaptionStyle}"
+                                                       Text="最近按键时间" />
+                                            <TextBlock x:Name="LastKeyText"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       Text="--:--:--" />
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
 
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,22,0,0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="16" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                                <TextBlock x:Name="TrendText"
+                                           Visibility="Collapsed"
+                                           Text="0" />
+                            </StackPanel>
 
-                            <TextBlock Style="{StaticResource SectionTitleStyle}"
-                                       Text="联动快照" />
+                            <Border Grid.Row="1"
+                                    Height="1"
+                                    Background="#E5EDF5" />
 
                             <StackPanel Grid.Row="2">
-                                <Border Background="#0B1527"
-                                        BorderBrush="#23314B"
-                                        BorderThickness="1"
-                                        CornerRadius="16"
-                                        Padding="16">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                           Text="联动状态" />
+                                <TextBlock x:Name="RuleText"
+                                           Margin="0,16,0,0"
+                                           FontSize="17"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           Text="命中规则: 未命中" />
+                                <TextBlock x:Name="WaveformText"
+                                           Margin="0,8,0,0"
+                                           FontSize="14"
+                                           Foreground="#4E78A0"
+                                           Text="当前波形: 未触发" />
+
+                                <Border Style="{StaticResource MetricTileStyle}"
+                                        Margin="0,16,0,0">
                                     <StackPanel>
-                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="当前规则" />
-                                        <TextBlock x:Name="RuleText"
-                                                   Margin="0,8,0,0"
-                                                   FontSize="18"
+                                        <TextBlock Style="{StaticResource CaptionStyle}"
+                                                   Text="设备摘要" />
+                                        <TextBlock x:Name="DeviceStatusText"
+                                                   Margin="0,10,0,0"
+                                                   FontSize="15"
                                                    FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                                   Text="命中规则: 未命中" />
-                                        <TextBlock x:Name="WaveformText"
+                                                   Text="未连接" />
+                                        <TextBlock x:Name="BatteryText"
+                                                   Margin="0,8,0,0"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   Text="电量: --" />
+                                        <TextBlock x:Name="TelemetryText"
                                                    Margin="0,6,0,0"
-                                                   FontSize="15"
-                                                   Foreground="#CFE2FF"
-                                                   Text="当前波形: 未触发" />
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   Text="遥测样本: 0" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <Border Grid.Row="3"
+                                    Height="1"
+                                    Background="#E5EDF5" />
+
+                            <StackPanel Grid.Row="4">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                           Text="设备遥测" />
+
+                                <Border Margin="0,16,0,0"
+                                        Background="#FAFCFF"
+                                        BorderBrush="{StaticResource BorderBrushSoft}"
+                                        BorderThickness="1"
+                                        CornerRadius="18"
+                                        Padding="16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ChannelAStatusText"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   Text="A 通道: --" />
+                                        <TextBlock x:Name="ChannelBStatusText"
+                                                   Margin="0,8,0,0"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   Text="B 通道: --" />
+                                        <TextBlock x:Name="MotorStatusText"
+                                                   Margin="0,8,0,0"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   Text="电机状态: --" />
+                                        <TextBlock x:Name="StepCountStatusText"
+                                                   Margin="0,8,0,0"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   Text="设备步数: --" />
                                     </StackPanel>
                                 </Border>
 
-                                <UniformGrid Margin="0,14,0,0" Columns="2">
+                                <UniformGrid Margin="0,16,0,0"
+                                             Columns="2">
                                     <Border Style="{StaticResource MetricTileStyle}"
                                             Margin="0,0,8,8">
                                         <StackPanel>
@@ -636,133 +538,55 @@
                                         </StackPanel>
                                     </Border>
                                 </UniformGrid>
+
+                                <Border Margin="0,16,0,0"
+                                        Background="{StaticResource CardAltBrush}"
+                                        BorderBrush="{StaticResource BorderBrushSoft}"
+                                        BorderThickness="1"
+                                        CornerRadius="16"
+                                        Padding="14">
+                                    <TextBlock x:Name="ConfigPathText"
+                                               FontSize="11"
+                                               LineHeight="18"
+                                               Foreground="#6B7C91"
+                                               TextWrapping="Wrap"
+                                               Text="配置文件: --" />
+                                </Border>
+
+                                <TextBlock x:Name="ErrorText"
+                                           Margin="0,14,0,0"
+                                           FontSize="12"
+                                           LineHeight="20"
+                                           TextWrapping="Wrap"
+                                           Foreground="#C24141"
+                                           Text="最近错误: 无" />
                             </StackPanel>
                         </Grid>
                     </Border>
+                </ScrollViewer>
 
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,22,0,0">
+                <Border Grid.Column="2"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrushSoft}"
+                        BorderThickness="1"
+                        CornerRadius="24"
+                        Padding="24"
+                        Effect="{StaticResource ShellShadowEffect}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="20" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SectionTitleStyle}"
-                                       Text="设备摘要" />
-                            <TextBlock x:Name="DeviceStatusText"
-                                       Margin="0,16,0,0"
-                                       FontSize="16"
+                            <TextBlock FontSize="16"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                       Text="未连接" />
-                            <TextBlock x:Name="BatteryText"
-                                       Margin="0,10,0,0"
-                                       FontSize="13"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       Text="电量: --" />
-                            <TextBlock x:Name="TelemetryText"
-                                       Margin="0,6,0,0"
-                                       FontSize="13"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       Text="遥测样本: 0" />
-                            <Border Style="{StaticResource MetricTileStyle}"
-                                    Margin="0,14,0,0"
-                                    Padding="14">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="设备遥测面板" />
-                                    <TextBlock x:Name="ChannelAStatusText"
-                                               Margin="0,10,0,0"
-                                               FontSize="12"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               Text="A 通道: --" />
-                                    <TextBlock x:Name="ChannelBStatusText"
-                                               Margin="0,6,0,0"
-                                               FontSize="12"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               Text="B 通道: --" />
-                                    <TextBlock x:Name="MotorStatusText"
-                                               Margin="0,6,0,0"
-                                               FontSize="12"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               Text="电机状态: --" />
-                                    <TextBlock x:Name="StepCountStatusText"
-                                               Margin="0,6,0,0"
-                                               FontSize="12"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               Text="设备步数: --" />
-                                </StackPanel>
-                            </Border>
-                            <TextBlock x:Name="ErrorText"
-                                       Margin="0,12,0,0"
-                                       FontSize="12"
-                                       LineHeight="20"
-                                       TextWrapping="Wrap"
-                                       Foreground="#FCA5A5"
-                                       Text="最近错误: 无" />
-                            <Border Style="{StaticResource MetricTileStyle}"
-                                    Margin="0,16,0,0"
-                                    Padding="14">
-                                <TextBlock x:Name="ConfigPathText"
-                                           FontSize="11"
-                                           LineHeight="18"
-                                           Foreground="#8FA4C6"
-                                           TextWrapping="Wrap"
-                                           Text="配置文件: --" />
-                            </Border>
+                                       Text="当前操作" />
                         </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
 
-                <!-- 右侧专注编辑任务，设备、波形、规则都共用同一套工作台结构。 -->
-                <Border Grid.Column="2"
-                    Background="#081525"
-                    BorderBrush="#28405F"
-                    BorderThickness="1"
-                    CornerRadius="30"
-                    Padding="22"
-                    Effect="{StaticResource ShellShadowEffect}">
-                    <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="18" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <Border Background="#0C1B31"
-                            BorderBrush="#20324D"
-                            BorderThickness="1"
-                            CornerRadius="22"
-                            Padding="18,16">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel>
-                                <TextBlock FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                           Text="工作区" />
-                                <TextBlock Margin="0,6,0,0"
-                                           FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           Text="按模块切换，右侧专心处理当前设备、波形或规则。" />
-                            </StackPanel>
-
-                            <Border Grid.Column="1"
-                                    Background="#102745"
-                                    BorderBrush="#355C87"
-                                    BorderThickness="1"
-                                    CornerRadius="999"
-                                    Padding="14,8"
-                                    Margin="18,0,0,0"
-                                    VerticalAlignment="Center">
-                                <TextBlock FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="#BFE3FF"
-                                           Text="设备 / 波形 / 规则" />
-                            </Border>
-                        </Grid>
-                    </Border>
-
-                    <TabControl Grid.Row="2">
+                        <TabControl Grid.Row="2">
                         <TabItem Header="设备">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <Grid Margin="0,18,0,0">
@@ -826,8 +650,8 @@
                                         </StackPanel>
 
                                         <UniformGrid Grid.Row="2" Columns="2">
-                                            <Border Background="#0B1527"
-                                                    BorderBrush="#23314B"
+                                            <Border Background="#FFFFFF"
+                                                    BorderBrush="#D7E2EF"
                                                     BorderThickness="1"
                                                     CornerRadius="18"
                                                     Padding="18"
@@ -845,8 +669,8 @@
                                                                Text="{Binding ElementName=BatteryText, Path=Text}" />
                                                 </StackPanel>
                                             </Border>
-                                            <Border Background="#0B1527"
-                                                    BorderBrush="#23314B"
+                                            <Border Background="#FFFFFF"
+                                                    BorderBrush="#D7E2EF"
                                                     BorderThickness="1"
                                                     CornerRadius="18"
                                                     Padding="18"
@@ -863,8 +687,8 @@
                                         </UniformGrid>
 
                                         <Border Grid.Row="4"
-                                                Background="#0B1527"
-                                                BorderBrush="#23314B"
+                                                Background="#FFFFFF"
+                                                BorderBrush="#D7E2EF"
                                                 BorderThickness="1"
                                                 CornerRadius="18"
                                                 Padding="18">
@@ -876,9 +700,9 @@
                                                            LineHeight="24"
                                                            Foreground="{StaticResource TextPrimaryBrush}"
                                                            TextWrapping="Wrap"
-                                                           Text="刷新设备状态后，这里会显示 A/B 通道、电机和步数信息。" />
-                                            </StackPanel>
-                                        </Border>
+                                                           Text="--" />
+                                             </StackPanel>
+                                         </Border>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -940,8 +764,8 @@
                                                 <ColumnDefinition Width="340" />
                                             </Grid.ColumnDefinitions>
 
-                                            <Border Background="#0B1527"
-                                                    BorderBrush="#23314B"
+                                            <Border Background="#FFFFFF"
+                                                    BorderBrush="#D7E2EF"
                                                     BorderThickness="1"
                                                     CornerRadius="18"
                                                     Padding="16">
@@ -950,7 +774,7 @@
                                                     <Canvas x:Name="WaveformPreviewCanvas"
                                                             Margin="0,12,0,0"
                                                             Height="210"
-                                                            Background="#091220" />
+                                                            Background="#F7FAFD" />
                                                 </StackPanel>
                                             </Border>
 
@@ -987,12 +811,13 @@
                                                 </Grid>
 
                                                 <Border Grid.Row="2"
-                                                        Background="#0B1527"
-                                                        BorderBrush="#23314B"
+                                                        Background="#FFFFFF"
+                                                        BorderBrush="#D7E2EF"
                                                         BorderThickness="1"
                                                         CornerRadius="18"
                                                         Padding="12">
-                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                                  PreviewMouseWheel="OnNestedScrollViewerPreviewMouseWheel">
                                                         <StackPanel x:Name="WaveformStepEditorPanel" />
                                                     </ScrollViewer>
                                                 </Border>
@@ -1036,8 +861,8 @@
 
                                         <Border x:Name="KeypressModePanel"
                                                 Margin="0,18,0,0"
-                                                Background="#0B1527"
-                                                BorderBrush="#23314B"
+                                                Background="#FFFFFF"
+                                                BorderBrush="#D7E2EF"
                                                 BorderThickness="1"
                                                 CornerRadius="18"
                                                 Padding="16">
@@ -1053,8 +878,8 @@
 
                                         <Border x:Name="IdleTriggerPanel"
                                                 Margin="0,18,0,0"
-                                                Background="#0B1527"
-                                                BorderBrush="#23314B"
+                                                Background="#FFFFFF"
+                                                BorderBrush="#D7E2EF"
                                                 BorderThickness="1"
                                                 CornerRadius="18"
                                                 Padding="16">
@@ -1137,8 +962,8 @@
                                             </StackPanel>
 
                                             <Border Grid.Row="2"
-                                                    Background="#091220"
-                                                    BorderBrush="#22314B"
+                                                    Background="#F7FAFD"
+                                                    BorderBrush="#D7E2EF"
                                                     BorderThickness="1"
                                                     CornerRadius="22"
                                                     Padding="18">
@@ -1150,8 +975,8 @@
                                             </Border>
 
                                             <Border Grid.Row="4"
-                                                    Background="#0F1A2E"
-                                                    BorderBrush="#22314B"
+                                                    Background="#FFFFFF"
+                                                    BorderBrush="#D7E2EF"
                                                     BorderThickness="1"
                                                     CornerRadius="22"
                                                     Padding="18">
@@ -1173,7 +998,7 @@
 
                                                         <TextBlock x:Name="SpecificKeyBindingStatusText"
                                                                    Margin="0,10,0,0"
-                                                                   Foreground="#8FA4C6"
+                                                                   Foreground="#6B7C91"
                                                                    FontSize="12"
                                                                    Text="未选择按键" />
                                                     </StackPanel>
@@ -1247,8 +1072,8 @@
                                                              Height="42" />
 
                                                     <Border Margin="0,20,0,0"
-                                                            Background="#0B1527"
-                                                            BorderBrush="#23314B"
+                                                            Background="#FFFFFF"
+                                                            BorderBrush="#D7E2EF"
                                                             BorderThickness="1"
                                                             CornerRadius="18"
                                                             Padding="16">
@@ -1265,8 +1090,8 @@
                                             </Grid>
 
                                             <Border Grid.Row="2"
-                                                    Background="#0B1527"
-                                                    BorderBrush="#23314B"
+                                                    Background="#FFFFFF"
+                                                    BorderBrush="#D7E2EF"
                                                     BorderThickness="1"
                                                     CornerRadius="18"
                                                     Padding="18">
@@ -1282,7 +1107,7 @@
                                                         <Canvas x:Name="RuleWaveformPreviewCanvas"
                                                                 Margin="0,12,0,0"
                                                                 Height="170"
-                                                                Background="#091220" />
+                                                                Background="#F7FAFD" />
                                                     </StackPanel>
 
                                                     <StackPanel Grid.Column="2">
@@ -1292,7 +1117,7 @@
                                                                    FontSize="24"
                                                                    FontWeight="SemiBold"
                                                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                                                   Text="0%" />
+                                                                   Text="0/180" />
 
                                                         <TextBlock Margin="0,20,0,0"
                                                                    Style="{StaticResource CaptionStyle}"
@@ -1302,7 +1127,7 @@
                                                                    FontSize="24"
                                                                    FontWeight="SemiBold"
                                                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                                                   Text="0%" />
+                                                                   Text="0/180" />
 
                                                         <TextBlock Margin="0,20,0,0"
                                                                    Style="{StaticResource CaptionStyle}"
@@ -1311,7 +1136,7 @@
                                                                    Margin="0,8,0,0"
                                                                    FontSize="18"
                                                                    FontWeight="SemiBold"
-                                                                   Foreground="#A5F3FC"
+                                                                   Foreground="#2D728F"
                                                                    Text="0 ms" />
                                                     </StackPanel>
                                                 </Grid>

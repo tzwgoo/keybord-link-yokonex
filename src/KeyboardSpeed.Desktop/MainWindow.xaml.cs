@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -272,9 +272,9 @@ public partial class MainWindow : Window
     {
         var isListening = _bootstrapper.IsListening;
         StatusText.Text = isListening ? "监听中" : "未监听";
-        StatusText.Foreground = CreateBrush(isListening ? "#4ADE80" : "#FBBF24");
+        StatusText.Foreground = CreateBrush(isListening ? "#0F766E" : "#B45309");
         HeaderListeningBadge.Text = isListening ? "监听中" : "监听已停止";
-        HeaderListeningBadge.Foreground = CreateBrush(isListening ? "#D1FAE5" : "#FEF3C7");
+        HeaderListeningBadge.Foreground = CreateBrush(isListening ? "#0F766E" : "#B45309");
     }
 
     private void RefreshOverviewPanels()
@@ -659,7 +659,7 @@ public partial class MainWindow : Window
                         Width = channelHandleRadius * 2,
                         Height = channelHandleRadius * 2,
                         Fill = CreateBrush(color),
-                        Stroke = CreateBrush("#E2E8F0"),
+                        Stroke = CreateBrush("#6B84A0"),
                         StrokeThickness = 1.2,
                         Cursor = Cursors.SizeNS
                     };
@@ -673,7 +673,7 @@ public partial class MainWindow : Window
                     var diamond = new Polygon
                     {
                         Fill = CreateBrush("#93C5FD"),
-                        Stroke = CreateBrush("#E2E8F0"),
+                        Stroke = CreateBrush("#6B84A0"),
                         StrokeThickness = 1,
                         Cursor = Cursors.SizeWE,
                         Points = new PointCollection
@@ -697,15 +697,15 @@ public partial class MainWindow : Window
         RuleWaveformPreviewCanvas.Children.Clear();
         if (waveform is null)
         {
-            RuleWaveformPeakAText.Text = "0%";
-            RuleWaveformPeakBText.Text = "0%";
+            RuleWaveformPeakAText.Text = FormatStrengthDisplay(0);
+            RuleWaveformPeakBText.Text = FormatStrengthDisplay(0);
             RuleWaveformDurationText.Text = "0 ms";
             AddWaveformPlaceholder(RuleWaveformPreviewCanvas, "选择绑定波形后，在这里查看预览");
             return;
         }
 
-        RuleWaveformPeakAText.Text = $"{waveform.Steps.DefaultIfEmpty().Max(step => step?.AStrength ?? 0)}%";
-        RuleWaveformPeakBText.Text = $"{waveform.Steps.DefaultIfEmpty().Max(step => step?.BStrength ?? 0)}%";
+        RuleWaveformPeakAText.Text = FormatStrengthDisplay(waveform.Steps.DefaultIfEmpty().Max(step => step?.AStrength ?? 0));
+        RuleWaveformPeakBText.Text = FormatStrengthDisplay(waveform.Steps.DefaultIfEmpty().Max(step => step?.BStrength ?? 0));
         RuleWaveformDurationText.Text = $"{waveform.Steps.Sum(step => Math.Max(1, step.DurationMs))} ms";
 
         var preview = WaveformPreviewBuilder.Build(waveform);
@@ -739,8 +739,8 @@ public partial class MainWindow : Window
         foreach (var point in preview.Points)
         {
             var x = padding + (width - padding * 2) * point.TimeMs / preview.TotalDurationMs;
-            var aY = height - padding - (height - padding * 2) * Math.Clamp(point.AStrength, 0, 100) / 100d;
-            var bY = height - padding - (height - padding * 2) * Math.Clamp(point.BStrength, 0, 100) / 100d;
+            var aY = height - padding - (height - padding * 2) * GetStrengthRatio(point.AStrength);
+            var bY = height - padding - (height - padding * 2) * GetStrengthRatio(point.BStrength);
             aLine.Points.Add(new Point(x, aY));
             bLine.Points.Add(new Point(x, bY));
         }
@@ -878,7 +878,7 @@ public partial class MainWindow : Window
         canvas.Children.Add(new System.Windows.Controls.TextBlock
         {
             Text = message,
-            Foreground = CreateBrush("#8FA4C6"),
+            Foreground = CreateBrush("#6B7C91"),
             FontSize = 12
         });
     }
@@ -947,6 +947,35 @@ public partial class MainWindow : Window
         _activeWaveformDrag = null;
     }
 
+    private void OnNestedScrollViewerPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not ScrollViewer currentScrollViewer)
+        {
+            return;
+        }
+
+        var canScrollUp = e.Delta > 0 && currentScrollViewer.VerticalOffset > 0;
+        var canScrollDown = e.Delta < 0 && currentScrollViewer.VerticalOffset < currentScrollViewer.ScrollableHeight;
+        if (canScrollUp || canScrollDown)
+        {
+            return;
+        }
+
+        var parentScrollViewer = FindAncestorScrollViewer(currentScrollViewer);
+        if (parentScrollViewer is null)
+        {
+            return;
+        }
+
+        // 内层滚动区到顶或到底后，把滚轮继续交给外层页面，避免鼠标停在卡片区域时滚不动。
+        e.Handled = true;
+        parentScrollViewer.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        {
+            RoutedEvent = MouseWheelEvent,
+            Source = currentScrollViewer
+        });
+    }
+
     private void EndWaveformPreviewDrag()
     {
         _activeWaveformDrag = null;
@@ -981,6 +1010,22 @@ public partial class MainWindow : Window
 
         handle = null!;
         return false;
+    }
+
+    private static ScrollViewer? FindAncestorScrollViewer(DependencyObject current)
+    {
+        var parent = VisualTreeHelper.GetParent(current);
+        while (parent is not null)
+        {
+            if (parent is ScrollViewer scrollViewer)
+            {
+                return scrollViewer;
+            }
+
+            parent = VisualTreeHelper.GetParent(parent);
+        }
+
+        return null;
     }
 
     private static Brush CreateBrush(string hexColor)
@@ -1030,7 +1075,13 @@ public partial class MainWindow : Window
 
     private void UpdateWaveformScriptFromSteps(IReadOnlyList<EmsWaveformStep> steps)
     {
-        SetWaveformEditorValues(WaveformNameTextBox.Text, WaveformScriptSerializer.Serialize(steps));
+        // 这里统一按设备真实量程回写脚本，避免步骤卡片把超上限强度继续写回编辑器。
+        var normalizedSteps = steps.Select(static step => step with
+        {
+            AStrength = EmsWaveformStep.ClampStrength(step.AStrength),
+            BStrength = EmsWaveformStep.ClampStrength(step.BStrength)
+        }).ToList();
+        SetWaveformEditorValues(WaveformNameTextBox.Text, WaveformScriptSerializer.Serialize(normalizedSteps));
         RenderWaveformPreviewFromEditor();
         RefreshWaveformStepEditor();
     }
@@ -1043,7 +1094,7 @@ public partial class MainWindow : Window
             WaveformStepEditorPanel.Children.Add(new TextBlock
             {
                 Text = "脚本格式无效，暂时无法显示步骤卡片。",
-                Foreground = CreateBrush("#FCA5A5"),
+                Foreground = CreateBrush("#C24141"),
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap
             });
@@ -1061,8 +1112,8 @@ public partial class MainWindow : Window
         var step = steps[index];
         var card = new Border
         {
-            Background = CreateBrush("#0E182A"),
-            BorderBrush = CreateBrush("#22314B"),
+            Background = CreateBrush("#FFFFFF"),
+            BorderBrush = CreateBrush("#D7E2EF"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(18),
             Padding = new Thickness(0),
@@ -1113,17 +1164,17 @@ public partial class MainWindow : Window
         });
         titleStack.Children.Add(new TextBlock
         {
-            Text = $"{step.DurationMs} ms  ·  A {step.AStrength}  ·  B {step.BStrength}",
+            Text = $"{step.DurationMs} ms  |  A {step.AStrength}  |  B {step.BStrength}",
             Margin = new Thickness(0, 10, 0, 0),
-            Foreground = CreateBrush("#F8FAFC"),
+            Foreground = CreateBrush("#0F172A"),
             FontSize = 15,
             FontWeight = FontWeights.SemiBold
         });
         titleStack.Children.Add(new TextBlock
         {
-            Text = $"模式 A{step.AMode} / B{step.BMode} · 电机 {step.MotorState}",
+            Text = $"模式 A{step.AMode} / B{step.BMode} | 电机 {step.MotorState}",
             Margin = new Thickness(0, 6, 0, 0),
-            Foreground = CreateBrush("#7F96B8"),
+            Foreground = CreateBrush("#6B7C91"),
             FontSize = 11
         });
 
@@ -1204,7 +1255,7 @@ public partial class MainWindow : Window
             panel.Children.Add(new TextBlock
             {
                 Text = field.Label,
-                Foreground = CreateBrush("#8FA4C6"),
+                Foreground = CreateBrush("#6B7C91"),
                 FontSize = 11
             });
 
@@ -1250,9 +1301,10 @@ public partial class MainWindow : Window
             FontWeight = FontWeights.Medium,
             IsEnabled = !isDisabled
         };
-        button.Background = isDanger ? CreateBrush("#261217") : CreateBrush("#101B2D");
-        button.BorderBrush = isDanger ? CreateBrush("#6F3140") : CreateBrush("#233754");
-        button.Foreground = isDanger ? CreateBrush("#F9C7D0") : CreateBrush("#C9D7EC");
+        // 步骤卡片里的动作统一走轻量按钮，避免编辑区出现太多强对比色块。
+        button.Background = isDanger ? CreateBrush("#FEF2F2") : CreateBrush("#FAFCFF");
+        button.BorderBrush = isDanger ? CreateBrush("#F3C7CF") : CreateBrush("#D7E2EF");
+        button.Foreground = isDanger ? CreateBrush("#B42318") : CreateBrush("#355D88");
         button.Click += handler;
         return button;
     }
@@ -1267,7 +1319,7 @@ public partial class MainWindow : Window
         panel.Children.Add(new TextBlock
         {
             Text = "强度概览",
-            Foreground = CreateBrush("#8FA4C6"),
+            Foreground = CreateBrush("#6B7C91"),
             FontSize = 11
         });
 
@@ -1283,14 +1335,6 @@ public partial class MainWindow : Window
         row.Children.Add(CreateStrengthBar("B 通道", step.BStrength, "#F59E0B", 2));
         panel.Children.Add(row);
 
-        panel.Children.Add(new TextBlock
-        {
-            Text = "修改下列字段后，脚本文本和波形预览会自动同步。",
-            Margin = new Thickness(0, 12, 0, 0),
-            Foreground = CreateBrush("#A9B8D3"),
-            FontSize = 11
-        });
-
         return panel;
     }
 
@@ -1301,16 +1345,16 @@ public partial class MainWindow : Window
 
         host.Children.Add(new TextBlock
         {
-            Text = $"{label}  {strength}%",
-            Foreground = CreateBrush("#D8E2F3"),
+            Text = $"{label}  {FormatStrengthDisplay(strength)}",
+            Foreground = CreateBrush("#355D88"),
             FontSize = 11,
             FontWeight = FontWeights.SemiBold
         });
 
         var track = new Border
         {
-            Background = CreateBrush("#162235"),
-            BorderBrush = CreateBrush("#263752"),
+            Background = CreateBrush("#EAF1F8"),
+            BorderBrush = CreateBrush("#D7E2EF"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(2),
             Height = 12,
@@ -1319,14 +1363,26 @@ public partial class MainWindow : Window
         };
 
         var trackGrid = (Grid)track.Child;
-        trackGrid.Children.Add(new Border
+        var fill = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Left,
-            Width = Math.Max(10, 1.8 * Math.Clamp(strength, 0, 100)),
+            Width = 0,
             Background = CreateBrush(colorHex),
             CornerRadius = new CornerRadius(2),
             Opacity = 0.95
-        });
+        };
+        trackGrid.Children.Add(fill);
+
+        // 这里按轨道真实宽度计算填充长度，180/180 时要铺满整条，不再用固定像素宽。
+        void UpdateFillWidth()
+        {
+            var trackWidth = Math.Max(0d, track.ActualWidth - track.BorderThickness.Left - track.BorderThickness.Right);
+            var fillWidth = trackWidth * GetStrengthRatio(strength);
+            fill.Width = strength <= 0 ? 0 : Math.Max(10, fillWidth);
+        }
+
+        track.Loaded += (_, _) => UpdateFillWidth();
+        track.SizeChanged += (_, _) => UpdateFillWidth();
 
         host.Children.Add(track);
         return host;
@@ -1346,10 +1402,20 @@ public partial class MainWindow : Window
     {
         return CreateBrush((index % 3) switch
         {
-            0 => "#11323B",
-            1 => "#122A47",
-            _ => "#3C2A11"
+            0 => "#E7FBF7",
+            1 => "#EAF4FF",
+            _ => "#FFF7EA"
         });
+    }
+
+    private static double GetStrengthRatio(int strength)
+    {
+        return EmsWaveformStep.ClampStrength(strength) / (double)EmsWaveformStep.MaxStrength;
+    }
+
+    private static string FormatStrengthDisplay(int strength)
+    {
+        return $"{strength}/{EmsWaveformStep.MaxStrength}";
     }
 
     private WaveformTriggerMode GetSelectedTriggerMode()
@@ -1385,7 +1451,7 @@ public partial class MainWindow : Window
             SpecificKeyTextBox.Text = "点击键帽选择按键";
             SpecificKeyTextBox.Tag = 0;
             SpecificKeyBindingStatusText.Text = "未选择按键";
-            SpecificKeyBindingStatusText.Foreground = CreateBrush("#8FA4C6");
+            SpecificKeyBindingStatusText.Foreground = CreateBrush("#6B7C91");
             SpecificKeyWaveformComboBox.SelectedItem = waveforms.FirstOrDefault();
             return;
         }
@@ -1395,13 +1461,13 @@ public partial class MainWindow : Window
         if (binding is null)
         {
             SpecificKeyBindingStatusText.Text = "这个键还没有保存映射";
-            SpecificKeyBindingStatusText.Foreground = CreateBrush("#A5B4FC");
+            SpecificKeyBindingStatusText.Foreground = CreateBrush("#5F6FB0");
             SpecificKeyWaveformComboBox.SelectedItem = waveforms.FirstOrDefault();
             return;
         }
 
         SpecificKeyBindingStatusText.Text = $"已绑定波形: {ResolveWaveformName(binding.WaveformId)}";
-        SpecificKeyBindingStatusText.Foreground = CreateBrush("#67E8F9");
+        SpecificKeyBindingStatusText.Foreground = CreateBrush("#0F8B8D");
         SpecificKeyWaveformComboBox.SelectedItem = waveforms.FirstOrDefault(item => item.Id == binding.WaveformId)
             ?? waveforms.FirstOrDefault();
     }
@@ -1680,27 +1746,27 @@ public partial class MainWindow : Window
             {
                 if (isSelected && isMapped)
                 {
-                    button.Background = CreateBrush("#0F766E");
-                    button.BorderBrush = CreateBrush("#67E8F9");
-                    button.Foreground = CreateBrush("#ECFEFF");
+                    button.Background = CreateBrush("#DFF7F4");
+                    button.BorderBrush = CreateBrush("#0F8B8D");
+                    button.Foreground = CreateBrush("#0F766E");
                 }
                 else if (isSelected)
                 {
-                    button.Background = CreateBrush("#17365D");
+                    button.Background = CreateBrush("#E6F0FF");
                     button.BorderBrush = CreateBrush("#60A5FA");
-                    button.Foreground = CreateBrush("#EFF6FF");
+                    button.Foreground = CreateBrush("#355D88");
                 }
                 else if (isMapped)
                 {
-                    button.Background = CreateBrush("#14303E");
-                    button.BorderBrush = CreateBrush("#22D3EE");
-                    button.Foreground = CreateBrush("#CFFAFE");
+                    button.Background = CreateBrush("#E7FBF7");
+                    button.BorderBrush = CreateBrush("#0F8B8D");
+                    button.Foreground = CreateBrush("#167C77");
                 }
                 else
                 {
-                    button.Background = CreateBrush("#101B2D");
-                    button.BorderBrush = CreateBrush("#233754");
-                    button.Foreground = CreateBrush("#C9D7EC");
+                    button.Background = CreateBrush("#F7FAFD");
+                    button.BorderBrush = CreateBrush("#D0DDEA");
+                    button.Foreground = CreateBrush("#355D88");
                 }
             }
         }
@@ -1740,3 +1806,5 @@ public partial class MainWindow : Window
 
     private sealed record DeviceOption(string DeviceId, string Summary);
 }
+
+

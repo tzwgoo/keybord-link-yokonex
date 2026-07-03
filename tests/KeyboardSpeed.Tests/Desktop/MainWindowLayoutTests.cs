@@ -49,6 +49,21 @@ public sealed class MainWindowLayoutTests
 
         Assert.DoesNotContain("把全局打字速度、蓝牙 EMS 设备控制、波形编辑和规则绑定放进同一个现代化桌面控制台。", xaml);
         Assert.DoesNotContain("你的输入节奏正在驱动设备响应", xaml);
+        Assert.DoesNotContain("只保留核心状态和当前操作，减少视觉干扰。", xaml);
+        Assert.DoesNotContain("主状态固定显示", xaml);
+        Assert.DoesNotContain("切换标签时也能看到", xaml);
+    }
+
+    [Fact]
+    public void Workspace_ShouldNotContainExplanatoryHelperCopy()
+    {
+        var xaml = ReadMainWindowXaml();
+        var codeBehind = ReadMainWindowCodeBehind();
+
+        Assert.DoesNotContain("关键状态固定在左侧，操作切换时不用来回找。", xaml);
+        Assert.DoesNotContain("按标签处理设备、波形和规则，右侧保持聚焦。", xaml);
+        Assert.DoesNotContain("刷新设备状态后，这里会显示 A/B 通道、电机和步数信息。", xaml);
+        Assert.DoesNotContain("修改下列字段后，脚本文本和波形预览会自动同步。", codeBehind);
     }
 
     [Fact]
@@ -65,14 +80,17 @@ public sealed class MainWindowLayoutTests
     {
         var xaml = ReadMainWindowXaml();
 
+        Assert.Contains("<Style TargetType=\"ComboBox\">", xaml);
+        Assert.Contains("<Setter Property=\"Foreground\" Value=\"{StaticResource TextPrimaryBrush}\" />", xaml);
+        Assert.Contains("<Setter Property=\"Background\" Value=\"#FFFFFF\" />", xaml);
+        Assert.Contains("<Setter Property=\"BorderBrush\" Value=\"#D0DDEA\" />", xaml);
         Assert.Contains("<Style TargetType=\"ComboBoxItem\">", xaml);
         Assert.Contains("<Setter Property=\"Foreground\" Value=\"{StaticResource TextPrimaryBrush}\" />", xaml);
-        Assert.Contains("<Setter Property=\"Background\" Value=\"#0B1527\" />", xaml);
-        Assert.Contains("<Setter Property=\"Foreground\" Value=\"{StaticResource InputTextBrush}\" />", xaml);
+        Assert.Contains("<Setter Property=\"Background\" Value=\"#FFFFFF\" />", xaml);
         Assert.Contains("<Trigger Property=\"IsHighlighted\" Value=\"True\">", xaml);
-        Assert.Contains("<Setter Property=\"Background\" Value=\"#17365D\" />", xaml);
+        Assert.Contains("<Setter Property=\"Background\" Value=\"#EEF6FF\" />", xaml);
         Assert.Contains("<Trigger Property=\"IsSelected\" Value=\"True\">", xaml);
-        Assert.Contains("<Setter Property=\"Background\" Value=\"#23406A\" />", xaml);
+        Assert.Contains("<Setter Property=\"Background\" Value=\"#E2F0FF\" />", xaml);
     }
 
     [Fact]
