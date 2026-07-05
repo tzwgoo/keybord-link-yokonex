@@ -16,7 +16,7 @@ public sealed class GlobalKeyboardHook : IDisposable
         _hookCallback = HandleHookCallback;
     }
 
-    public event EventHandler<KeystrokeCapturedEventArgs>? KeyDown;
+    public event EventHandler<KeystrokeCapturedEventArgs>? KeyChanged;
 
     public bool IsInstalled => _hookHandle != nint.Zero;
 
@@ -76,16 +76,23 @@ public sealed class GlobalKeyboardHook : IDisposable
     private nint HandleHookCallback(int nCode, nuint wParam, nint lParam)
     {
         if (nCode >= 0 &&
-            (wParam == NativeMethods.WmKeyDown || wParam == NativeMethods.WmSysKeyDown))
+            (wParam == NativeMethods.WmKeyDown ||
+             wParam == NativeMethods.WmSysKeyDown ||
+             wParam == NativeMethods.WmKeyUp ||
+             wParam == NativeMethods.WmSysKeyUp))
         {
             var hookData = Marshal.PtrToStructure<NativeMethods.KbdLlHookStruct>(lParam);
             var virtualKey = unchecked((int)hookData.VkCode);
-            KeyDown?.Invoke(
+            var action = wParam == NativeMethods.WmKeyUp || wParam == NativeMethods.WmSysKeyUp
+                ? KeystrokeAction.Up
+                : KeystrokeAction.Down;
+            KeyChanged?.Invoke(
                 this,
                 new KeystrokeCapturedEventArgs(
                     DateTimeOffset.UtcNow,
                     virtualKey,
-                    KeyboardInputClassifier.ShouldCount(virtualKey)));
+                    KeyboardInputClassifier.ShouldCount(virtualKey),
+                    action));
         }
 
         return NativeMethods.CallNextHookEx(_hookHandle, nCode, wParam, lParam);

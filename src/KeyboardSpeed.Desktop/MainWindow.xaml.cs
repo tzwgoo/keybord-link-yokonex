@@ -124,7 +124,8 @@ public partial class MainWindow : Window
     [
         new TriggerModeOption(WaveformTriggerMode.SpeedRules, "键速触发"),
         new TriggerModeOption(WaveformTriggerMode.AnyKeypress, "按键即触发"),
-        new TriggerModeOption(WaveformTriggerMode.SpecificKeypress, "指定按键触发")
+        new TriggerModeOption(WaveformTriggerMode.SpecificKeypress, "指定按键触发"),
+        new TriggerModeOption(WaveformTriggerMode.HoldKeypress, "按住持续触发")
     ];
     private readonly AppBootstrapper _bootstrapper;
     private bool _isBusy;
@@ -843,12 +844,14 @@ public partial class MainWindow : Window
 
     private void UpdateTriggerModeUi()
     {
-        var isAnyKeypressMode = GetSelectedTriggerMode() == WaveformTriggerMode.AnyKeypress;
-        var isSpecificKeypressMode = GetSelectedTriggerMode() == WaveformTriggerMode.SpecificKeypress;
-        KeypressModePanel.Visibility = isAnyKeypressMode ? Visibility.Visible : Visibility.Collapsed;
+        var selectedMode = GetSelectedTriggerMode();
+        var isKeypressWaveformMode = selectedMode == WaveformTriggerMode.AnyKeypress ||
+            selectedMode == WaveformTriggerMode.HoldKeypress;
+        var isSpecificKeypressMode = selectedMode == WaveformTriggerMode.SpecificKeypress;
+        KeypressModePanel.Visibility = isKeypressWaveformMode ? Visibility.Visible : Visibility.Collapsed;
         SpecificKeyModePanel.Visibility = isSpecificKeypressMode ? Visibility.Visible : Visibility.Collapsed;
         IdleTriggerPanel.Visibility = Visibility.Visible;
-        var isSpeedRuleMode = GetSelectedTriggerMode() == WaveformTriggerMode.SpeedRules;
+        var isSpeedRuleMode = selectedMode == WaveformTriggerMode.SpeedRules;
         SpeedRuleEditorPanel.Visibility = isSpecificKeypressMode ? Visibility.Collapsed : Visibility.Visible;
         SpeedRuleListPanel.IsEnabled = isSpeedRuleMode;
         SpeedRuleListPanel.Opacity = isSpeedRuleMode ? 1 : 0.45;

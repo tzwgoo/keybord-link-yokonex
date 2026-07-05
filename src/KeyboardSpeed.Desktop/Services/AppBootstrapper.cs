@@ -23,6 +23,7 @@ public sealed class AppBootstrapper : IDisposable
     private readonly List<EmsWaveformDefinition> _waveforms;
     private readonly List<SpeedRangeRule> _speedRules;
     private readonly List<SpecificKeyTriggerBinding> _specificKeyTriggers;
+    private readonly HashSet<int> _holdPlaybackVirtualKeys = [];
     private bool _disposed;
     private WaveformTriggerMode _triggerMode;
     private string _keypressWaveformId = string.Empty;
@@ -32,6 +33,7 @@ public sealed class AppBootstrapper : IDisposable
     private bool _idleTriggerDispatched;
     private string _currentRuleName = "未命中";
     private string _currentWaveformName = "未触发";
+    private CancellationTokenSource? _holdPlaybackCts;
 
     public AppBootstrapper()
         : this(
@@ -156,6 +158,7 @@ public sealed class AppBootstrapper : IDisposable
         }
 
         Stop();
+        CancelHoldPlayback(stopDevice: true);
         _keyboardListener.KeystrokeCaptured -= HandleKeystrokeCaptured;
         _bleDeviceManager.StatusChanged -= HandleBluetoothStatusChanged;
         _keyboardListener.Dispose();
@@ -262,6 +265,11 @@ public sealed class AppBootstrapper : IDisposable
 
         _triggerMode = mode;
         _keypressWaveformId = NormalizeKeypressWaveformId(keypressWaveformId);
+        if (mode != WaveformTriggerMode.HoldKeypress)
+        {
+            CancelHoldPlayback(stopDevice: true);
+        }
+
         if (mode == WaveformTriggerMode.SpecificKeypress)
         {
             _currentWaveformName = "未触发";
@@ -397,7 +405,7 @@ public sealed class AppBootstrapper : IDisposable
     private void HandleKeystrokeCaptured(object? sender, KeystrokeCapturedEventArgs e)
     {
         // 触发模式要能拿到所有按键，但键速和空闲提醒只认有效输入键。
-        if (e.IsCounted)
+        if (e.Action == KeystrokeAction.Down && e.IsCounted)
         {
             LastKeystrokeAt = e.Timestamp;
             _idleTriggerDispatched = false;
@@ -446,6 +454,10 @@ public sealed class AppBootstrapper : IDisposable
         {
             ApplyAnyKeypressModeState();
         }
+        else if (_triggerMode == WaveformTriggerMode.HoldKeypress)
+        {
+            ApplyHoldKeypressModeState();
+        }
         else if (_triggerMode == WaveformTriggerMode.SpecificKeypress)
         {
             ApplySpecificKeypressModeState();
@@ -492,6 +504,17 @@ public sealed class AppBootstrapper : IDisposable
 
     private void DispatchKeypressWaveformIfNeeded(KeystrokeCapturedEventArgs keystroke)
     {
+        if (_triggerMode == WaveformTriggerMode.HoldKeypress)
+        {
+            HandleHoldKeypressPlayback(keystroke);
+            return;
+        }
+
+        if (keystroke.Action != KeystrokeAction.Down)
+        {
+            return;
+        }
+
         // 这里统一做按键触发分流，避免把“任意按键”和“指定按键”拆成两套分支。
         var evaluation = _waveformTriggerRouter.EvaluateKeystroke(
             _triggerMode,
@@ -524,6 +547,15 @@ public sealed class AppBootstrapper : IDisposable
         _currentWaveformName = ResolveWaveformById(_keypressWaveformId)?.Name ?? "未触发";
     }
 
+    private void ApplyHoldKeypressModeState()
+    {
+        _currentRuleName = "按住持续触发";
+        if (_holdPlaybackVirtualKeys.Count == 0 && _currentWaveformName != "已停止")
+        {
+            _currentWaveformName = ResolveWaveformById(_keypressWaveformId)?.Name ?? "未触发";
+        }
+    }
+
     private void ApplySpecificKeypressModeState()
     {
         _currentRuleName = "指定按键触发";
@@ -531,6 +563,11 @@ public sealed class AppBootstrapper : IDisposable
 
     private void ApplyIdleTriggerIfNeeded(DateTimeOffset now)
     {
+        if (_triggerMode == WaveformTriggerMode.HoldKeypress && _holdPlaybackVirtualKeys.Count > 0)
+        {
+            return;
+        }
+
         if (!_idleTriggerEnabled || !LastKeystrokeAt.HasValue)
         {
             return;
@@ -557,6 +594,100 @@ public sealed class AppBootstrapper : IDisposable
 
         _idleTriggerDispatched = true;
         _ = _bleDeviceManager.PlayWaveformAsync(waveform);
+    }
+
+    private void HandleHoldKeypressPlayback(KeystrokeCapturedEventArgs keystroke)
+    {
+        if (keystroke.Action == KeystrokeAction.Up)
+        {
+            if (!_holdPlaybackVirtualKeys.Remove(keystroke.VirtualKey) || _holdPlaybackVirtualKeys.Count > 0)
+            {
+                return;
+            }
+
+            _currentWaveformName = "已停止";
+            CancelHoldPlayback(stopDevice: true);
+            return;
+        }
+
+        // 长按时 Windows 会重复发送 KeyDown，这里只响应首次按下。
+        if (!_holdPlaybackVirtualKeys.Add(keystroke.VirtualKey) || _holdPlaybackVirtualKeys.Count > 1)
+        {
+            return;
+        }
+
+        var waveform = ResolveWaveformById(_keypressWaveformId);
+        if (waveform is null)
+        {
+            return;
+        }
+
+        _currentRuleName = "按住持续触发";
+        _currentWaveformName = waveform.Name;
+        if (!_bleDeviceManager.CurrentStatus.IsConnected)
+        {
+            return;
+        }
+
+        StartHoldPlayback(waveform);
+    }
+
+    private void StartHoldPlayback(EmsWaveformDefinition waveform)
+    {
+        CancelHoldPlaybackLoop(stopDevice: false);
+
+        var cts = new CancellationTokenSource();
+        _holdPlaybackCts = cts;
+        _ = RunHoldPlaybackLoopAsync(waveform, cts.Token);
+    }
+
+    private async Task RunHoldPlaybackLoopAsync(EmsWaveformDefinition waveform, CancellationToken cancellationToken)
+    {
+        var refreshDelay = ResolveHoldPlaybackDelay(waveform);
+
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await _bleDeviceManager.PlayWaveformAsync(waveform, cancellationToken, autoStop: false);
+                await Task.Delay(refreshDelay, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            AppDiagnostics.WriteException("AppBootstrapper.RunHoldPlaybackLoopAsync", ex);
+        }
+    }
+
+    private void CancelHoldPlayback(bool stopDevice)
+    {
+        _holdPlaybackVirtualKeys.Clear();
+        CancelHoldPlaybackLoop(stopDevice);
+    }
+
+    private void CancelHoldPlaybackLoop(bool stopDevice)
+    {
+        if (_holdPlaybackCts is not null)
+        {
+            try
+            {
+                _holdPlaybackCts.Cancel();
+            }
+            catch
+            {
+            }
+
+            _holdPlaybackCts.Dispose();
+            _holdPlaybackCts = null;
+        }
+
+        if (stopDevice && _bleDeviceManager.CurrentStatus.IsConnected)
+        {
+            _ = _bleDeviceManager.StopAsync();
+        }
     }
 
     private void ThrowIfDisposed()
@@ -594,6 +725,16 @@ public sealed class AppBootstrapper : IDisposable
     {
         var waveform = _waveforms.FirstOrDefault(item => string.Equals(item.Id, waveformId, StringComparison.OrdinalIgnoreCase));
         return waveform ?? _waveforms.FirstOrDefault();
+    }
+
+    private static TimeSpan ResolveHoldPlaybackDelay(EmsWaveformDefinition waveform)
+    {
+        var totalStepDurationMs = waveform.Steps.Sum(static step => Math.Max(1, step.DurationMs));
+        var totalDurationMs = Math.Max(1, waveform.LoopCount) * totalStepDurationMs;
+
+        // 续发略早于波形结束，减少蓝牙和设备处理延迟造成的断感。
+        var refreshMs = Math.Max(50, (int)Math.Round(totalDurationMs * 0.85, MidpointRounding.AwayFromZero));
+        return TimeSpan.FromMilliseconds(refreshMs);
     }
 
     private string NormalizeKeypressWaveformId(string? waveformId)

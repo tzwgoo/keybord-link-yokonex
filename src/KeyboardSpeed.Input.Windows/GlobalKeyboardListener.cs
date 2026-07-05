@@ -13,7 +13,7 @@ public sealed class GlobalKeyboardListener : IGlobalKeyboardListener
     internal GlobalKeyboardListener(GlobalKeyboardHook globalKeyboardHook)
     {
         _globalKeyboardHook = globalKeyboardHook ?? throw new ArgumentNullException(nameof(globalKeyboardHook));
-        _globalKeyboardHook.KeyDown += HandleKeyDown;
+        _globalKeyboardHook.KeyChanged += HandleKeyChanged;
     }
 
     public event EventHandler<KeystrokeCapturedEventArgs>? KeystrokeCaptured;
@@ -41,12 +41,12 @@ public sealed class GlobalKeyboardListener : IGlobalKeyboardListener
             return;
         }
 
-        _globalKeyboardHook.KeyDown -= HandleKeyDown;
+        _globalKeyboardHook.KeyChanged -= HandleKeyChanged;
         _globalKeyboardHook.Dispose();
         _disposed = true;
     }
 
-    private void HandleKeyDown(object? sender, KeystrokeCapturedEventArgs e)
+    private void HandleKeyChanged(object? sender, KeystrokeCapturedEventArgs e)
     {
         KeystrokeCaptured?.Invoke(this, e);
     }

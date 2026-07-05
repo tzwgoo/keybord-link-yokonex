@@ -6,7 +6,9 @@ internal static partial class NativeMethods
 {
     public const int WhKeyboardLl = 13;
     public const int WmKeyDown = 0x0100;
+    public const int WmKeyUp = 0x0101;
     public const int WmSysKeyDown = 0x0104;
+    public const int WmSysKeyUp = 0x0105;
 
     [LibraryImport("user32.dll", SetLastError = true)]
     public static partial nint SetWindowsHookExW(int idHook, LowLevelKeyboardProc lpfn, nint hmod, uint dwThreadId);

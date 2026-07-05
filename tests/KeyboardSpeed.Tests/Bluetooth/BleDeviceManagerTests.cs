@@ -208,6 +208,39 @@ public sealed class BleDeviceManagerTests
         Assert.Equal([0x35, 0x11, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x49], manager.PacketHistory[^1]);
     }
 
+    [Fact]
+    public async Task PlayWaveformAsync_ShouldSkipPendingAutoStopWhenAutoStopIsDisabled()
+    {
+        var device = new BluetoothDeviceDescriptor
+        {
+            DeviceId = "dev-1",
+            Name = "YYC-DJ-V2-001",
+            DeviceType = BluetoothDeviceType.Ems,
+            ProtocolProfile = BluetoothProtocolProfile.EmsV2,
+            ServiceUuid = BluetoothAdvertisementDeviceClassifier.EmsServiceUuid
+        };
+
+        var delayController = new ControlledDelay();
+        var bridge = new FakeWindowsBlePlatformBridge([device]);
+        var manager = new BleDeviceManager(() => bridge, delayController.DelayAsync);
+        var waveform = new Core.Waveforms.EmsWaveformDefinition
+        {
+            Id = "soft-pulse",
+            Name = "柔和脉冲",
+            Steps =
+            [
+                new Core.Waveforms.EmsWaveformStep { DurationMs = 40, AStrength = 18, BStrength = 16 }
+            ]
+        };
+
+        await manager.ScanAsync(CancellationToken.None);
+        await manager.ConnectAsync(device.DeviceId, CancellationToken.None);
+        await manager.PlayWaveformAsync(waveform, CancellationToken.None, autoStop: false);
+
+        Assert.Empty(delayController.Requests);
+        Assert.Single(manager.PacketHistory);
+    }
+
     private sealed class FakeWindowsBlePlatformBridge : IWindowsBlePlatformBridge
     {
         private readonly IReadOnlyList<BluetoothDeviceDescriptor> _devices;

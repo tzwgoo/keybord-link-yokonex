@@ -190,7 +190,10 @@ public sealed class BleDeviceManager : IBluetoothDeviceManager
         }
     }
 
-    public async Task PlayWaveformAsync(EmsWaveformDefinition waveform, CancellationToken cancellationToken = default)
+    public async Task PlayWaveformAsync(
+        EmsWaveformDefinition waveform,
+        CancellationToken cancellationToken = default,
+        bool autoStop = true)
     {
         ArgumentNullException.ThrowIfNull(waveform);
 
@@ -204,12 +207,20 @@ public sealed class BleDeviceManager : IBluetoothDeviceManager
             return;
         }
 
+        if (!autoStop)
+        {
+            CancelPendingAutoStop();
+        }
+
         foreach (var packet in _emsProtocolAdapter.CreatePackets(waveform, device))
         {
             await WriteAsync(packet, cancellationToken);
         }
 
-        ScheduleAutoStop(waveform);
+        if (autoStop)
+        {
+            ScheduleAutoStop(waveform);
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default)

@@ -129,6 +129,72 @@ public sealed class AppBootstrapperTriggerModeTests : IDisposable
     }
 
     [Fact]
+    public async Task HoldKeypressMode_ShouldLoopUntilLastHeldKeyIsReleased()
+    {
+        var settingsPath = Path.Combine(_directoryPath, "hold-keypress-trigger-mode-settings.json");
+        var settingsStore = new SettingsStore(settingsPath);
+        await settingsStore.SaveAsync(new AppSettings
+        {
+            TriggerMode = WaveformTriggerMode.HoldKeypress,
+            KeypressWaveformId = "hold-wave",
+            Waveforms =
+            [
+                new Core.Waveforms.EmsWaveformDefinition
+                {
+                    Id = "hold-wave",
+                    Name = "按住波形",
+                    Steps =
+                    [
+                        new Core.Waveforms.EmsWaveformStep
+                        {
+                            DurationMs = 2000,
+                            AStrength = 18,
+                            BStrength = 16
+                        }
+                    ]
+                }
+            ]
+        }, CancellationToken.None);
+
+        var keyboardListener = new FakeKeyboardListener();
+        var bridge = new FakeWindowsBlePlatformBridge();
+        var deviceManager = new BleDeviceManager(bridge);
+        using var bootstrapper = new AppBootstrapper(
+            new TypingSpeedCalculator(new TypingSpeedOptions()),
+            keyboardListener,
+            deviceManager,
+            new SpeedRuleCoordinator(new SpeedRuleEngine()),
+            settingsStore);
+
+        await bootstrapper.ScanBluetoothAsync(CancellationToken.None);
+        await bootstrapper.ConnectBluetoothAsync(bridge.Device.DeviceId, CancellationToken.None);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(DateTimeOffset.Now, virtualKey: 65));
+        Assert.True(SpinWait.SpinUntil(() => deviceManager.PacketHistory.Count > 0, 1000));
+        var firstPacketCount = deviceManager.PacketHistory.Count;
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(DateTimeOffset.Now.AddMilliseconds(20), virtualKey: 65));
+        Assert.Equal(firstPacketCount, deviceManager.PacketHistory.Count);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(DateTimeOffset.Now.AddMilliseconds(40), virtualKey: 66));
+        Assert.Equal(firstPacketCount, deviceManager.PacketHistory.Count);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(
+            DateTimeOffset.Now.AddMilliseconds(60),
+            virtualKey: 65,
+            action: KeystrokeAction.Up));
+        Assert.Equal(firstPacketCount, deviceManager.PacketHistory.Count);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(
+            DateTimeOffset.Now.AddMilliseconds(80),
+            virtualKey: 66,
+            action: KeystrokeAction.Up));
+        Assert.True(SpinWait.SpinUntil(() => deviceManager.PacketHistory.Count > firstPacketCount, 1000));
+        Assert.Equal("按住持续触发", bootstrapper.CurrentRuleName);
+        Assert.Equal("已停止", bootstrapper.CurrentWaveformName);
+    }
+
+    [Fact]
     public async Task IdleTrigger_ShouldDispatchOnceAfterTimeoutAndRearmAfterNextKeystroke()
     {
         var settingsPath = Path.Combine(_directoryPath, "idle-trigger-settings.json");
