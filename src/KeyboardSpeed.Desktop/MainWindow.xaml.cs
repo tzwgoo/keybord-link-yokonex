@@ -1155,7 +1155,7 @@ public partial class MainWindow : Window
             Background = ResolveStepAccentBackgroundBrush(index),
             BorderBrush = ResolveStepAccentBrush(index),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(999),
+            CornerRadius = new CornerRadius(8),
             Padding = new Thickness(10, 4, 10, 4),
             HorizontalAlignment = HorizontalAlignment.Left,
             Child = new TextBlock

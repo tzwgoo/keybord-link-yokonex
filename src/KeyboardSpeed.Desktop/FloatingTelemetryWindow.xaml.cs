@@ -10,6 +10,9 @@ public partial class FloatingTelemetryWindow : Window
 {
     private const double PreviewPadding = 12d;
     private const double ChannelBarMaxWidth = 132d;
+    private const int MaxRealtimeSamples = 120;
+    private static readonly TimeSpan RealtimeWindow = TimeSpan.FromSeconds(8);
+    private readonly List<RealtimeStrengthSample> _realtimeSamples = [];
 
     public FloatingTelemetryWindow()
     {
@@ -28,25 +31,38 @@ public partial class FloatingTelemetryWindow : Window
         ChannelBTextBlock.Text = FormatStrengthDisplay(state.ChannelBStrength);
         ChannelABar.Width = ChannelBarMaxWidth * GetStrengthRatio(state.ChannelAStrength);
         ChannelBBar.Width = ChannelBarMaxWidth * GetStrengthRatio(state.ChannelBStrength);
-        RenderWaveform(state.Waveform, state.ChannelAStrength, state.ChannelBStrength);
+        RecordRealtimeStrength(state);
+        RenderRealtimeWaveform();
     }
 
-    private void RenderWaveform(EmsWaveformDefinition? waveform, int channelAStrength, int channelBStrength)
+    private void RecordRealtimeStrength(Services.FloatingTelemetryState state)
+    {
+        if (!state.IsVisible)
+        {
+            _realtimeSamples.Clear();
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        _realtimeSamples.Add(new RealtimeStrengthSample(now, state.ChannelAStrength, state.ChannelBStrength));
+
+        var oldestVisible = now - RealtimeWindow;
+        _realtimeSamples.RemoveAll(sample => sample.Timestamp < oldestVisible);
+        if (_realtimeSamples.Count > MaxRealtimeSamples)
+        {
+            _realtimeSamples.RemoveRange(0, _realtimeSamples.Count - MaxRealtimeSamples);
+        }
+    }
+
+    private void RenderRealtimeWaveform()
     {
         WaveformCanvas.Children.Clear();
         var width = Math.Max(1d, WaveformCanvas.ActualWidth > 0 ? WaveformCanvas.ActualWidth : 324d);
         var height = WaveformCanvas.Height;
 
-        if (waveform is null)
+        if (_realtimeSamples.Count == 0)
         {
-            AddPlaceholder("等待波形触发");
-            return;
-        }
-
-        var preview = WaveformPreviewBuilder.Build(waveform);
-        if (preview.Points.Count == 0 || preview.TotalDurationMs <= 0)
-        {
-            AddPlaceholder("当前波形没有预览数据");
+            AddPlaceholder("等待实时强度");
             return;
         }
 
@@ -63,19 +79,23 @@ public partial class FloatingTelemetryWindow : Window
             StrokeThickness = 2
         };
 
-        foreach (var point in preview.Points)
+        var latest = _realtimeSamples[^1];
+        var visibleStart = latest.Timestamp - RealtimeWindow;
+        foreach (var sample in _realtimeSamples)
         {
-            var x = PreviewPadding + (width - PreviewPadding * 2) * point.TimeMs / preview.TotalDurationMs;
-            var aY = height - PreviewPadding - (height - PreviewPadding * 2) * GetStrengthRatio(point.AStrength);
-            var bY = height - PreviewPadding - (height - PreviewPadding * 2) * GetStrengthRatio(point.BStrength);
+            // 横轴固定展示最近几秒，让实时强度变化能连续滚动显示。
+            var elapsed = Math.Clamp((sample.Timestamp - visibleStart).TotalMilliseconds, 0d, RealtimeWindow.TotalMilliseconds);
+            var x = PreviewPadding + (width - PreviewPadding * 2) * elapsed / RealtimeWindow.TotalMilliseconds;
+            var aY = ResolveStrengthY(height, sample.ChannelAStrength);
+            var bY = ResolveStrengthY(height, sample.ChannelBStrength);
             aLine.Points.Add(new Point(x, aY));
             bLine.Points.Add(new Point(x, bY));
         }
 
         WaveformCanvas.Children.Add(aLine);
         WaveformCanvas.Children.Add(bLine);
-        DrawLiveStrengthIndicator(width, height, channelAStrength, "#4FD1C5", 0d);
-        DrawLiveStrengthIndicator(width, height, channelBStrength, "#F59E0B", 12d);
+        DrawLiveStrengthPoint(width, height, latest.ChannelAStrength, "#4FD1C5", -5d);
+        DrawLiveStrengthPoint(width, height, latest.ChannelBStrength, "#F59E0B", 5d);
     }
 
     private void DrawGuides(double width, double height)
@@ -108,21 +128,10 @@ public partial class FloatingTelemetryWindow : Window
         System.Windows.Controls.Canvas.SetTop(textBlock, Math.Max(8d, WaveformCanvas.Height / 2d - 10d));
     }
 
-    private void DrawLiveStrengthIndicator(double width, double height, int strength, string color, double xOffset)
+    private void DrawLiveStrengthPoint(double width, double height, int strength, string color, double xOffset)
     {
-        var y = height - PreviewPadding - (height - PreviewPadding * 2) * GetStrengthRatio(strength);
-        var x = width - PreviewPadding - 16d + xOffset;
-
-        WaveformCanvas.Children.Add(new Line
-        {
-            X1 = PreviewPadding,
-            X2 = width - PreviewPadding,
-            Y1 = y,
-            Y2 = y,
-            Stroke = CreateBrush(color),
-            StrokeThickness = 1,
-            Opacity = 0.22
-        });
+        var y = ResolveStrengthY(height, strength);
+        var x = width - PreviewPadding + xOffset;
 
         var marker = new Ellipse
         {
@@ -133,7 +142,7 @@ public partial class FloatingTelemetryWindow : Window
             StrokeThickness = 1
         };
         WaveformCanvas.Children.Add(marker);
-        System.Windows.Controls.Canvas.SetLeft(marker, x);
+        System.Windows.Controls.Canvas.SetLeft(marker, x - 4d);
         System.Windows.Controls.Canvas.SetTop(marker, y - 4d);
     }
 
@@ -157,8 +166,18 @@ public partial class FloatingTelemetryWindow : Window
         return EmsWaveformStep.ClampStrength(strength) / (double)EmsWaveformStep.MaxStrength;
     }
 
+    private static double ResolveStrengthY(double height, int strength)
+    {
+        return height - PreviewPadding - (height - PreviewPadding * 2) * GetStrengthRatio(strength);
+    }
+
     private static string FormatStrengthDisplay(int strength)
     {
         return $"{strength}/{EmsWaveformStep.MaxStrength}";
     }
+
+    private readonly record struct RealtimeStrengthSample(
+        DateTimeOffset Timestamp,
+        int ChannelAStrength,
+        int ChannelBStrength);
 }
