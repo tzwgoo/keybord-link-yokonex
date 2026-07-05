@@ -68,7 +68,7 @@
                         <StackPanel>
                             <TextBlock FontSize="10"
                                        Foreground="#6B84A0"
-                                       Text="键/分钟" />
+                                       Text="字符/分钟" />
                             <TextBlock x:Name="CharactersPerMinuteTextBlock"
                                        Margin="0,4,0,0"
                                        FontSize="22"

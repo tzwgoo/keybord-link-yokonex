@@ -17,11 +17,10 @@ public sealed class TypingSpeedCalculator
 
     public TypingSpeedSnapshot CreateSnapshot(DateTimeOffset now)
     {
-        PruneExpiredSamples(now);
-
+        var totalCount = CountUntil(now);
         var realtimeCount = CountWithinWindow(now, _options.RealtimeWindow);
         var trendCount = CountWithinWindow(now, _options.TrendWindow);
-        var realtimeKpm = ConvertCountToKpm(realtimeCount, _options.RealtimeWindow);
+        var realtimeKpm = ConvertTotalCountToCpm(totalCount, now);
         var trendKpm = ConvertCountToKpm(trendCount, _options.TrendWindow);
 
         return new TypingSpeedSnapshot(
@@ -32,16 +31,31 @@ public sealed class TypingSpeedCalculator
             realtimeCount);
     }
 
-    private void PruneExpiredSamples(DateTimeOffset now)
+    private int CountUntil(DateTimeOffset now)
     {
-        var minTimestamp = now - _options.TrendWindow;
-        _samples.RemoveAll(sample => sample.Timestamp < minTimestamp);
+        return _samples.Count(sample => sample.Timestamp <= now);
     }
 
     private int CountWithinWindow(DateTimeOffset now, TimeSpan window)
     {
         var minTimestamp = now - window;
         return _samples.Count(sample => sample.Timestamp >= minTimestamp && sample.Timestamp <= now);
+    }
+
+    private double ConvertTotalCountToCpm(int count, DateTimeOffset now)
+    {
+        if (count <= 0)
+        {
+            return 0d;
+        }
+
+        var firstTimestamp = _samples
+            .Where(sample => sample.Timestamp <= now)
+            .Min(static sample => sample.Timestamp);
+        var elapsed = now - firstTimestamp;
+
+        // CPM 按总输入字符数除以总耗时分钟，耗时为 0 时不放大成异常速度。
+        return elapsed > TimeSpan.Zero ? count / elapsed.TotalMinutes : 0d;
     }
 
     private static double ConvertCountToKpm(int count, TimeSpan window)

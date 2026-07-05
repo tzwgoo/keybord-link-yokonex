@@ -338,7 +338,7 @@
                                            Text="0" />
                                 <TextBlock Margin="0,4,0,0"
                                            Style="{StaticResource CaptionStyle}"
-                                           Text="键/分钟" />
+                                           Text="字符/分钟" />
 
                                 <UniformGrid Margin="0,20,0,0"
                                              Columns="2">
@@ -348,7 +348,7 @@
                                             <TextBlock Visibility="Collapsed"
                                                        Text="30 秒趋势" />
                                             <TextBlock Style="{StaticResource CaptionStyle}"
-                                                       Text="30 秒趋势键/分钟" />
+                                                       Text="30 秒趋势字符/分钟" />
                                             <TextBlock x:Name="TrendHeroText"
                                                        Margin="0,8,0,0"
                                                        FontSize="24"
@@ -1046,7 +1046,7 @@
 
                                                     <TextBlock Margin="0,20,0,0"
                                                                Style="{StaticResource CaptionStyle}"
-                                                               Text="键/分钟区间" />
+                                                               Text="字符/分钟区间" />
                                                     <UniformGrid Margin="0,8,0,0" Columns="2">
                                                         <TextBox x:Name="RuleMinTextBox"
                                                                  Margin="0,0,8,0"

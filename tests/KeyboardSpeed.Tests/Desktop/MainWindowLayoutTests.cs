@@ -182,10 +182,10 @@ public sealed class MainWindowLayoutTests
 
         Assert.DoesNotContain("Text=\"KPM\"", xaml);
         Assert.DoesNotContain("Text=\"WPM\"", xaml);
-        Assert.Contains("Text=\"键/分钟\"", xaml);
+        Assert.Contains("Text=\"字符/分钟\"", xaml);
         Assert.Contains("Text=\"30 秒趋势\"", xaml);
-        Assert.Contains("Text=\"30 秒趋势键/分钟\"", xaml);
-        Assert.Contains("Text=\"键/分钟区间\"", xaml);
+        Assert.Contains("Text=\"30 秒趋势字符/分钟\"", xaml);
+        Assert.Contains("Text=\"字符/分钟区间\"", xaml);
     }
 
     [Fact]
