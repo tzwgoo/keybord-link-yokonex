@@ -57,4 +57,30 @@ public sealed class EmsBleProtocolAdapterTests
 
         Assert.Equal([0x35, 0x11, 0x03, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x4B], bytes);
     }
+
+    [Fact]
+    public void Adapter_ShouldClampStrengthToDeviceMaxBeforePacking()
+    {
+        var adapter = new EmsBleProtocolAdapter();
+        var waveform = new EmsWaveformDefinition
+        {
+            Id = "max-strength",
+            Name = "Max Strength",
+            Steps =
+            [
+                new EmsWaveformStep
+                {
+                    AStrength = 220,
+                    AMode = 1,
+                    BStrength = 205,
+                    BMode = 2
+                }
+            ]
+        };
+
+        var packets = adapter.CreatePackets(waveform);
+
+        Assert.Single(packets);
+        Assert.Equal([0x35, 0x11, 0x01, 0x00, 0xB4, 0x01, 0x00, 0xB4, 0x02, 0xB2], packets[0]);
+    }
 }

@@ -24,10 +24,10 @@ public partial class FloatingTelemetryWindow : Window
         ConnectionStatusTextBlock.Text = state.ConnectionText;
         CharactersPerMinuteTextBlock.Text = state.CharactersPerMinuteText;
         CurrentWaveformTextBlock.Text = state.WaveformName;
-        ChannelATextBlock.Text = $"{state.ChannelAStrength}%";
-        ChannelBTextBlock.Text = $"{state.ChannelBStrength}%";
-        ChannelABar.Width = ChannelBarMaxWidth * Math.Clamp(state.ChannelAStrength, 0, 100) / 100d;
-        ChannelBBar.Width = ChannelBarMaxWidth * Math.Clamp(state.ChannelBStrength, 0, 100) / 100d;
+        ChannelATextBlock.Text = FormatStrengthDisplay(state.ChannelAStrength);
+        ChannelBTextBlock.Text = FormatStrengthDisplay(state.ChannelBStrength);
+        ChannelABar.Width = ChannelBarMaxWidth * GetStrengthRatio(state.ChannelAStrength);
+        ChannelBBar.Width = ChannelBarMaxWidth * GetStrengthRatio(state.ChannelBStrength);
         RenderWaveform(state.Waveform, state.ChannelAStrength, state.ChannelBStrength);
     }
 
@@ -66,8 +66,8 @@ public partial class FloatingTelemetryWindow : Window
         foreach (var point in preview.Points)
         {
             var x = PreviewPadding + (width - PreviewPadding * 2) * point.TimeMs / preview.TotalDurationMs;
-            var aY = height - PreviewPadding - (height - PreviewPadding * 2) * Math.Clamp(point.AStrength, 0, 100) / 100d;
-            var bY = height - PreviewPadding - (height - PreviewPadding * 2) * Math.Clamp(point.BStrength, 0, 100) / 100d;
+            var aY = height - PreviewPadding - (height - PreviewPadding * 2) * GetStrengthRatio(point.AStrength);
+            var bY = height - PreviewPadding - (height - PreviewPadding * 2) * GetStrengthRatio(point.BStrength);
             aLine.Points.Add(new Point(x, aY));
             bLine.Points.Add(new Point(x, bY));
         }
@@ -110,8 +110,7 @@ public partial class FloatingTelemetryWindow : Window
 
     private void DrawLiveStrengthIndicator(double width, double height, int strength, string color, double xOffset)
     {
-        var clampedStrength = Math.Clamp(strength, 0, 100);
-        var y = height - PreviewPadding - (height - PreviewPadding * 2) * clampedStrength / 100d;
+        var y = height - PreviewPadding - (height - PreviewPadding * 2) * GetStrengthRatio(strength);
         var x = width - PreviewPadding - 16d + xOffset;
 
         WaveformCanvas.Children.Add(new Line
@@ -151,5 +150,15 @@ public partial class FloatingTelemetryWindow : Window
     private static Brush CreateBrush(string hexColor)
     {
         return (SolidColorBrush)new BrushConverter().ConvertFrom(hexColor)!;
+    }
+
+    private static double GetStrengthRatio(int strength)
+    {
+        return EmsWaveformStep.ClampStrength(strength) / (double)EmsWaveformStep.MaxStrength;
+    }
+
+    private static string FormatStrengthDisplay(int strength)
+    {
+        return $"{strength}/{EmsWaveformStep.MaxStrength}";
     }
 }

@@ -27,9 +27,9 @@ public static class WaveformScriptSerializer
             steps.Add(new EmsWaveformStep
             {
                 DurationMs = ParseInt(parts[0], nameof(EmsWaveformStep.DurationMs)),
-                AStrength = ParseInt(parts[1], nameof(EmsWaveformStep.AStrength)),
+                AStrength = EmsWaveformStep.ClampStrength(ParseInt(parts[1], nameof(EmsWaveformStep.AStrength))),
                 AMode = ParseInt(parts[2], nameof(EmsWaveformStep.AMode)),
-                BStrength = ParseInt(parts[3], nameof(EmsWaveformStep.BStrength)),
+                BStrength = EmsWaveformStep.ClampStrength(ParseInt(parts[3], nameof(EmsWaveformStep.BStrength))),
                 BMode = ParseInt(parts[4], nameof(EmsWaveformStep.BMode)),
                 MotorState = ParseInt(parts[5], nameof(EmsWaveformStep.MotorState))
             });

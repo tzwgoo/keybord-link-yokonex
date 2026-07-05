@@ -56,16 +56,18 @@ public sealed class EmsBleProtocolAdapter
 
     private static byte[] CreateFixedPacket(EmsWaveformStep step)
     {
+        var aStrength = EmsWaveformStep.ClampStrength(step.AStrength);
+        var bStrength = EmsWaveformStep.ClampStrength(step.BStrength);
         var bytes = new List<byte>
         {
             0x35,
             0x11,
             0x01,
-            High(step.AStrength),
-            Low(step.AStrength),
+            High(aStrength),
+            Low(aStrength),
             (byte)step.AMode,
-            High(step.BStrength),
-            Low(step.BStrength),
+            High(bStrength),
+            Low(bStrength),
             (byte)step.BMode
         };
         bytes.Add(EmsPacketChecksum.Compute(bytes));
@@ -92,8 +94,8 @@ public sealed class EmsBleProtocolAdapter
 
     private static byte ResolveV1Channel(EmsWaveformStep step)
     {
-        var aEnabled = step.AStrength > 0;
-        var bEnabled = step.BStrength > 0;
+        var aEnabled = EmsWaveformStep.ClampStrength(step.AStrength) > 0;
+        var bEnabled = EmsWaveformStep.ClampStrength(step.BStrength) > 0;
         return (aEnabled, bEnabled) switch
         {
             (true, true) => 0x03,
@@ -105,11 +107,13 @@ public sealed class EmsBleProtocolAdapter
 
     private static V1ChannelPayload ResolveV1SourceStep(EmsWaveformStep step, byte channel)
     {
+        var aStrength = EmsWaveformStep.ClampStrength(step.AStrength);
+        var bStrength = EmsWaveformStep.ClampStrength(step.BStrength);
         return channel switch
         {
-            0x02 => new V1ChannelPayload(step.BStrength, step.BMode, step.BFrequency, step.BPulseWidth),
-            0x03 when step.BStrength > step.AStrength => new V1ChannelPayload(step.BStrength, step.BMode, step.BFrequency, step.BPulseWidth),
-            _ => new V1ChannelPayload(step.AStrength, step.AMode, step.AFrequency, step.APulseWidth)
+            0x02 => new V1ChannelPayload(bStrength, step.BMode, step.BFrequency, step.BPulseWidth),
+            0x03 when bStrength > aStrength => new V1ChannelPayload(bStrength, step.BMode, step.BFrequency, step.BPulseWidth),
+            _ => new V1ChannelPayload(aStrength, step.AMode, step.AFrequency, step.APulseWidth)
         };
     }
 

@@ -66,4 +66,26 @@ public sealed class FloatingTelemetryPresenterTests
         Assert.Equal("未连接设备", state.DeviceName);
         Assert.Equal("--", state.ConnectionText);
     }
+
+    [Fact]
+    public void BuildState_ShouldClampRealtimeStrengthToDeviceMax()
+    {
+        var snapshot = new TypingSpeedSnapshot(90, 18, 88, 17.6, 4);
+        var status = new BluetoothConnectionStatus
+        {
+            IsConnected = true,
+            ChannelAStrength = 240,
+            ChannelBStrength = 200
+        };
+
+        var state = FloatingTelemetryPresenter.BuildState(
+            snapshot,
+            status,
+            "未命中",
+            null,
+            "未触发");
+
+        Assert.Equal(EmsWaveformStep.MaxStrength, state.ChannelAStrength);
+        Assert.Equal(EmsWaveformStep.MaxStrength, state.ChannelBStrength);
+    }
 }

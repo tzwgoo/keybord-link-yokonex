@@ -27,8 +27,8 @@ public static class FloatingTelemetryPresenter
             CharactersPerMinuteText = snapshot.RealtimeKpm.ToString("0.0"),
             RuleName = string.IsNullOrWhiteSpace(currentRuleName) ? "未命中" : currentRuleName,
             WaveformName = string.IsNullOrWhiteSpace(currentWaveformName) ? "未触发" : currentWaveformName,
-            ChannelAStrength = Math.Clamp(status.ChannelAStrength ?? 0, 0, 100),
-            ChannelBStrength = Math.Clamp(status.ChannelBStrength ?? 0, 0, 100),
+            ChannelAStrength = EmsWaveformStep.ClampStrength(status.ChannelAStrength ?? 0),
+            ChannelBStrength = EmsWaveformStep.ClampStrength(status.ChannelBStrength ?? 0),
             Waveform = waveform
         };
     }

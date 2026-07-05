@@ -36,7 +36,7 @@ public sealed class WaveformDragEditorLogicTests
             y: 12,
             height: 210);
 
-        Assert.Equal(100, updated[0].AStrength);
+        Assert.Equal(EmsWaveformStep.MaxStrength, updated[0].AStrength);
         Assert.Equal(20, updated[0].BStrength);
     }
 

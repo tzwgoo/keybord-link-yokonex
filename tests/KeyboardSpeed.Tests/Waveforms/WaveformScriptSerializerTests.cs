@@ -41,4 +41,15 @@ public sealed class WaveformScriptSerializerTests
 
         Assert.Equal("120,12,1,24,2,1", script.Trim());
     }
+
+    [Fact]
+    public void Parse_ShouldClampStrengthToDeviceMax()
+    {
+        const string script = "120,220,1,205,2,0";
+
+        var steps = WaveformScriptSerializer.Parse(script);
+
+        Assert.Equal(EmsWaveformStep.MaxStrength, steps[0].AStrength);
+        Assert.Equal(EmsWaveformStep.MaxStrength, steps[0].BStrength);
+    }
 }

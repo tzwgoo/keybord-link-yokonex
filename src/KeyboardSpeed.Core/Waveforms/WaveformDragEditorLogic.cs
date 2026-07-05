@@ -126,13 +126,13 @@ public static class WaveformDragEditorLogic
     {
         var plotHeight = Math.Max(1d, height - padding * 2);
         var normalized = (height - padding - y) / plotHeight;
-        return (int)Math.Round(Math.Clamp(normalized, 0d, 1d) * 100d, MidpointRounding.AwayFromZero);
+        return (int)Math.Round(Math.Clamp(normalized, 0d, 1d) * EmsWaveformStep.MaxStrength, MidpointRounding.AwayFromZero);
     }
 
     private static double StrengthToY(int strength, double height, double padding)
     {
         var plotHeight = Math.Max(1d, height - padding * 2);
-        return height - padding - plotHeight * Math.Clamp(strength, 0, 100) / 100d;
+        return height - padding - plotHeight * EmsWaveformStep.ClampStrength(strength) / (double)EmsWaveformStep.MaxStrength;
     }
 
     private static IReadOnlyList<EmsWaveformStep> NormalizeSteps(IEnumerable<EmsWaveformStep> steps)

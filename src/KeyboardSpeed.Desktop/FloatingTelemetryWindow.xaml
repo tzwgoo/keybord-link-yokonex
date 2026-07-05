@@ -11,8 +11,8 @@
         ResizeMode="NoResize"
         AllowsTransparency="True"
         Background="Transparent">
-    <Border Background="#DA091326"
-            BorderBrush="#376096"
+    <Border Background="#F9FCFF"
+            BorderBrush="#D3E1EF"
             BorderThickness="1"
             CornerRadius="24"
             Padding="18"
@@ -34,20 +34,20 @@
 
                 <StackPanel>
                     <TextBlock FontSize="11"
-                               Foreground="#7DD3FC"
+                               Foreground="#4C84B3"
                                Text="FLOATING TELEMETRY" />
                     <TextBlock x:Name="DeviceNameTextBlock"
                                Margin="0,8,0,0"
                                FontSize="21"
                                FontWeight="SemiBold"
-                               Foreground="#F8FAFC"
+                               Foreground="#0F172A"
                                Text="未连接设备" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1"
                             HorizontalAlignment="Right">
-                    <Border Background="#10233C"
-                            BorderBrush="#2D4E74"
+                    <Border Background="#EAF3FF"
+                            BorderBrush="#C7D8EA"
                             BorderThickness="1"
                             CornerRadius="999"
                             Padding="10,6"
@@ -55,25 +55,25 @@
                         <TextBlock x:Name="ConnectionStatusTextBlock"
                                    FontSize="11"
                                    FontWeight="SemiBold"
-                                   Foreground="#D1FAE5"
+                                   Foreground="#0F766E"
                                    Text="--" />
                     </Border>
 
                     <Border Margin="0,8,0,0"
-                            Background="#112341"
-                            BorderBrush="#25436A"
+                            Background="#EEF5FF"
+                            BorderBrush="#CADAEA"
                             BorderThickness="1"
                             CornerRadius="14"
                             Padding="12,8">
                         <StackPanel>
                             <TextBlock FontSize="10"
-                                       Foreground="#8FB0D6"
+                                       Foreground="#6B84A0"
                                        Text="键/分钟" />
                             <TextBlock x:Name="CharactersPerMinuteTextBlock"
                                        Margin="0,4,0,0"
                                        FontSize="22"
                                        FontWeight="Bold"
-                                       Foreground="#F8FAFC"
+                                       Foreground="#0F172A"
                                        Text="0.0" />
                         </StackPanel>
                     </Border>
@@ -81,8 +81,8 @@
             </Grid>
 
             <Border Grid.Row="2"
-                    Background="#101D34"
-                    BorderBrush="#284A77"
+                    Background="#FFFFFF"
+                    BorderBrush="#D7E2EF"
                     BorderThickness="1"
                     CornerRadius="20"
                     Padding="14,12">
@@ -101,19 +101,19 @@
 
                         <TextBlock FontSize="12"
                                    FontWeight="SemiBold"
-                                   Foreground="#D9E8FB"
+                                   Foreground="#355D88"
                                    Text="实时波形" />
 
                         <Border Grid.Column="1"
-                                Background="#132948"
-                                BorderBrush="#23456C"
+                                Background="#EEF5FF"
+                                BorderBrush="#CADAEA"
                                 BorderThickness="1"
                                 CornerRadius="999"
                                 Padding="10,5">
                             <TextBlock x:Name="CurrentWaveformTextBlock"
                                        FontSize="10"
                                        FontWeight="SemiBold"
-                                       Foreground="#A9C7F2"
+                                       Foreground="#4E78A0"
                                        Text="未触发" />
                         </Border>
                     </Grid>
@@ -121,13 +121,13 @@
                     <Canvas x:Name="WaveformCanvas"
                             Grid.Row="2"
                             Height="96"
-                            Background="#091220" />
+                            Background="#F7FAFD" />
                 </Grid>
             </Border>
 
             <Border Grid.Row="4"
-                    Background="#101A2F"
-                    BorderBrush="#284A77"
+                    Background="#FFFFFF"
+                    BorderBrush="#D7E2EF"
                     BorderThickness="1"
                     CornerRadius="20"
                     Padding="14,12">
@@ -140,7 +140,7 @@
 
                     <TextBlock FontSize="12"
                                FontWeight="SemiBold"
-                               Foreground="#D9E8FB"
+                               Foreground="#355D88"
                                Text="实时强度" />
 
                     <Grid Grid.Row="2">
@@ -150,8 +150,8 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Background="#13223D"
-                                BorderBrush="#223D64"
+                        <Border Background="#FFFFFF"
+                                BorderBrush="#D7E2EF"
                                 BorderThickness="1"
                                 CornerRadius="16"
                                 MinHeight="104"
@@ -164,12 +164,12 @@
                                            Margin="0,6,0,0"
                                            FontSize="24"
                                            FontWeight="Bold"
-                                           Foreground="#F3FBFC"
-                                           Text="0%" />
+                                           Foreground="#0F172A"
+                                           Text="0/180" />
                                 <Border Height="12"
                                         Margin="0,10,0,0"
-                                        Background="#162235"
-                                        BorderBrush="#24344F"
+                                        Background="#EAF1F8"
+                                        BorderBrush="#D7E2EF"
                                         BorderThickness="1"
                                         CornerRadius="6">
                                     <Border x:Name="ChannelABar"
@@ -182,8 +182,8 @@
                         </Border>
 
                         <Border Grid.Column="2"
-                                Background="#13223D"
-                                BorderBrush="#223D64"
+                                Background="#FFFFFF"
+                                BorderBrush="#D7E2EF"
                                 BorderThickness="1"
                                 CornerRadius="16"
                                 MinHeight="104"
@@ -196,12 +196,12 @@
                                            Margin="0,6,0,0"
                                            FontSize="24"
                                            FontWeight="Bold"
-                                           Foreground="#FFF8EE"
-                                           Text="0%" />
+                                           Foreground="#0F172A"
+                                           Text="0/180" />
                                 <Border Height="12"
                                         Margin="0,10,0,0"
-                                        Background="#162235"
-                                        BorderBrush="#24344F"
+                                        Background="#EAF1F8"
+                                        BorderBrush="#D7E2EF"
                                         BorderThickness="1"
                                         CornerRadius="6">
                                     <Border x:Name="ChannelBBar"
