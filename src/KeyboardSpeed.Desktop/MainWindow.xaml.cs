@@ -125,7 +125,13 @@ public partial class MainWindow : Window
         new TriggerModeOption(WaveformTriggerMode.SpeedRules, "键速触发"),
         new TriggerModeOption(WaveformTriggerMode.AnyKeypress, "按键即触发"),
         new TriggerModeOption(WaveformTriggerMode.SpecificKeypress, "指定按键触发"),
-        new TriggerModeOption(WaveformTriggerMode.HoldKeypress, "按住持续触发")
+        new TriggerModeOption(WaveformTriggerMode.HoldKeypress, "按住持续触发"),
+        new TriggerModeOption(WaveformTriggerMode.MouseClick, "鼠标点击触发")
+    ];
+    private static readonly IReadOnlyList<MouseClickPayloadOption> MouseClickPayloadOptions =
+    [
+        new MouseClickPayloadOption(MouseClickTriggerPayloadType.Waveform, "触发波形"),
+        new MouseClickPayloadOption(MouseClickTriggerPayloadType.FixedStrength, "固定强度")
     ];
     private readonly AppBootstrapper _bootstrapper;
     private bool _isBusy;
@@ -156,6 +162,7 @@ public partial class MainWindow : Window
         _bootstrapper.SnapshotUpdated += HandleSnapshotUpdated;
         _bootstrapper.BluetoothStatusUpdated += HandleBluetoothStatusUpdated;
         TriggerModeComboBox.ItemsSource = TriggerModeOptions;
+        MouseClickPayloadComboBox.ItemsSource = MouseClickPayloadOptions;
         ApplyListeningState();
         ApplySnapshot(_bootstrapper.CurrentSnapshot);
         ApplyBluetoothStatus(_bootstrapper.BluetoothStatus);
@@ -381,6 +388,27 @@ public partial class MainWindow : Window
         PersistTriggerModeSelectionIfNeeded();
     }
 
+    private void OnMouseClickPayloadSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        UpdateTriggerModeUi();
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
+    private void OnMouseClickFixedSettingLostFocus(object sender, RoutedEventArgs e)
+    {
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
+    private void OnMouseClickFixedSettingKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+        {
+            return;
+        }
+
+        PersistTriggerModeSelectionIfNeeded();
+    }
+
     private void OnSpecificKeyWaveformSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
     }
@@ -547,6 +575,11 @@ public partial class MainWindow : Window
         var selectedMode = GetSelectedTriggerMode();
         var keypressWaveformId = (KeypressWaveformComboBox.SelectedItem as EmsWaveformDefinition)?.Id;
         var idleWaveformId = (IdleWaveformComboBox.SelectedItem as EmsWaveformDefinition)?.Id;
+        if (!TryParseMouseClickFixedSettings(out var fixedAStrength, out var fixedBStrength, out var fixedDurationMs))
+        {
+            return;
+        }
+
         if (!int.TryParse(IdleTriggerTimeoutTextBox.Text, out var idleTimeoutMs) || idleTimeoutMs <= 0)
         {
             ErrorText.Text = "最近错误: 空闲超时时间必须是大于 0 的整数毫秒值。";
@@ -556,6 +589,10 @@ public partial class MainWindow : Window
         _ = PersistTriggerModeSelectionAsync(
             selectedMode,
             keypressWaveformId,
+            GetSelectedMouseClickPayloadType(),
+            fixedAStrength,
+            fixedBStrength,
+            fixedDurationMs,
             IdleTriggerEnabledCheckBox.IsChecked == true,
             idleTimeoutMs,
             idleWaveformId);
@@ -564,6 +601,10 @@ public partial class MainWindow : Window
     private async Task PersistTriggerModeSelectionAsync(
         WaveformTriggerMode selectedMode,
         string? keypressWaveformId,
+        MouseClickTriggerPayloadType mouseClickPayloadType,
+        int mouseClickFixedAStrength,
+        int mouseClickFixedBStrength,
+        int mouseClickFixedDurationMs,
         bool idleTriggerEnabled,
         int idleTriggerTimeoutMs,
         string? idleWaveformId)
@@ -573,6 +614,11 @@ public partial class MainWindow : Window
             await _bootstrapper.UpdateTriggerModeAsync(
                 selectedMode,
                 keypressWaveformId);
+            await _bootstrapper.UpdateMouseClickTriggerAsync(
+                mouseClickPayloadType,
+                mouseClickFixedAStrength,
+                mouseClickFixedBStrength,
+                mouseClickFixedDurationMs);
             await _bootstrapper.UpdateIdleTriggerAsync(idleTriggerEnabled, idleTriggerTimeoutMs, idleWaveformId);
         });
         ApplyTriggerModeEditor();
@@ -821,6 +867,11 @@ public partial class MainWindow : Window
         {
             TriggerModeComboBox.SelectedItem = TriggerModeOptions.FirstOrDefault(item => item.Mode == _bootstrapper.TriggerMode)
                 ?? TriggerModeOptions.First();
+            MouseClickPayloadComboBox.SelectedItem = MouseClickPayloadOptions.FirstOrDefault(item => item.PayloadType == _bootstrapper.MouseClickPayloadType)
+                ?? MouseClickPayloadOptions.First();
+            MouseClickFixedAStrengthTextBox.Text = _bootstrapper.MouseClickFixedAStrength.ToString();
+            MouseClickFixedBStrengthTextBox.Text = _bootstrapper.MouseClickFixedBStrength.ToString();
+            MouseClickFixedDurationTextBox.Text = _bootstrapper.MouseClickFixedDurationMs.ToString();
 
             if (KeypressWaveformComboBox.ItemsSource is IEnumerable<EmsWaveformDefinition> waveforms)
             {
@@ -846,9 +897,18 @@ public partial class MainWindow : Window
     {
         var selectedMode = GetSelectedTriggerMode();
         var isKeypressWaveformMode = selectedMode == WaveformTriggerMode.AnyKeypress ||
-            selectedMode == WaveformTriggerMode.HoldKeypress;
+            selectedMode == WaveformTriggerMode.HoldKeypress ||
+            selectedMode == WaveformTriggerMode.MouseClick;
         var isSpecificKeypressMode = selectedMode == WaveformTriggerMode.SpecificKeypress;
+        var isMouseClickMode = selectedMode == WaveformTriggerMode.MouseClick;
+        var isMouseClickFixedStrength = isMouseClickMode &&
+            GetSelectedMouseClickPayloadType() == MouseClickTriggerPayloadType.FixedStrength;
         KeypressModePanel.Visibility = isKeypressWaveformMode ? Visibility.Visible : Visibility.Collapsed;
+        MouseClickPayloadPanel.Visibility = isMouseClickMode ? Visibility.Visible : Visibility.Collapsed;
+        KeypressWaveformLabel.Text = selectedMode == WaveformTriggerMode.MouseClick ? "点击波形" : "按键波形";
+        KeypressWaveformLabel.Visibility = isMouseClickFixedStrength ? Visibility.Collapsed : Visibility.Visible;
+        KeypressWaveformComboBox.Visibility = isMouseClickFixedStrength ? Visibility.Collapsed : Visibility.Visible;
+        MouseClickFixedStrengthPanel.Visibility = isMouseClickFixedStrength ? Visibility.Visible : Visibility.Collapsed;
         SpecificKeyModePanel.Visibility = isSpecificKeypressMode ? Visibility.Visible : Visibility.Collapsed;
         IdleTriggerPanel.Visibility = Visibility.Visible;
         var isSpeedRuleMode = selectedMode == WaveformTriggerMode.SpeedRules;
@@ -1432,6 +1492,46 @@ public partial class MainWindow : Window
         return (TriggerModeComboBox.SelectedItem as TriggerModeOption)?.Mode ?? WaveformTriggerMode.SpeedRules;
     }
 
+    private MouseClickTriggerPayloadType GetSelectedMouseClickPayloadType()
+    {
+        return (MouseClickPayloadComboBox.SelectedItem as MouseClickPayloadOption)?.PayloadType
+            ?? MouseClickTriggerPayloadType.Waveform;
+    }
+
+    private bool TryParseMouseClickFixedSettings(
+        out int fixedAStrength,
+        out int fixedBStrength,
+        out int fixedDurationMs)
+    {
+        fixedAStrength = 0;
+        fixedBStrength = 0;
+        fixedDurationMs = 0;
+
+        if (!int.TryParse(MouseClickFixedAStrengthTextBox.Text, out fixedAStrength) ||
+            fixedAStrength < 0 ||
+            fixedAStrength > WaveformMaxStrength)
+        {
+            ErrorText.Text = $"最近错误: A 通道强度必须是 0 到 {WaveformMaxStrength}。";
+            return false;
+        }
+
+        if (!int.TryParse(MouseClickFixedBStrengthTextBox.Text, out fixedBStrength) ||
+            fixedBStrength < 0 ||
+            fixedBStrength > WaveformMaxStrength)
+        {
+            ErrorText.Text = $"最近错误: B 通道强度必须是 0 到 {WaveformMaxStrength}。";
+            return false;
+        }
+
+        if (!int.TryParse(MouseClickFixedDurationTextBox.Text, out fixedDurationMs) || fixedDurationMs <= 0)
+        {
+            ErrorText.Text = "最近错误: 固定强度持续时间必须是大于 0 的整数毫秒值。";
+            return false;
+        }
+
+        return true;
+    }
+
     private void RefreshSpecificKeyBindingList()
     {
         if (_selectedSpecificKeyVirtualKey <= 0)
@@ -1805,6 +1905,7 @@ public partial class MainWindow : Window
         double Height);
 
     private sealed record TriggerModeOption(WaveformTriggerMode Mode, string Name);
+    private sealed record MouseClickPayloadOption(MouseClickTriggerPayloadType PayloadType, string Name);
     private sealed record KeyboardKeyDefinition(int VirtualKey, string Label, double WidthUnits = 1, bool IsSpacer = false)
     {
         public static KeyboardKeyDefinition CreateSpacer(double widthUnits)

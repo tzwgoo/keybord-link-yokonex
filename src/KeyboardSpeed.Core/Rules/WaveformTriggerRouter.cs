@@ -51,4 +51,16 @@ public sealed class WaveformTriggerRouter
 
         return new RuleEvaluationResult(null, false, false, null);
     }
+
+    public RuleEvaluationResult EvaluateMouseClick(
+        WaveformTriggerMode mode,
+        string? mouseClickWaveformId)
+    {
+        if (mode == WaveformTriggerMode.MouseClick && !string.IsNullOrWhiteSpace(mouseClickWaveformId))
+        {
+            return new RuleEvaluationResult(null, true, false, mouseClickWaveformId);
+        }
+
+        return new RuleEvaluationResult(null, false, false, null);
+    }
 }

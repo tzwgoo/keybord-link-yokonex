@@ -15,6 +15,7 @@ public sealed class AppBootstrapper : IDisposable
 {
     private readonly TypingSpeedCalculator _typingSpeedCalculator;
     private readonly IGlobalKeyboardListener _keyboardListener;
+    private readonly IGlobalMouseListener _mouseListener;
     private readonly BleDeviceManager _bleDeviceManager;
     private readonly SpeedRuleCoordinator _speedRuleCoordinator;
     private readonly WaveformTriggerRouter _waveformTriggerRouter;
@@ -27,6 +28,10 @@ public sealed class AppBootstrapper : IDisposable
     private bool _disposed;
     private WaveformTriggerMode _triggerMode;
     private string _keypressWaveformId = string.Empty;
+    private MouseClickTriggerPayloadType _mouseClickPayloadType;
+    private int _mouseClickFixedAStrength;
+    private int _mouseClickFixedBStrength;
+    private int _mouseClickFixedDurationMs;
     private bool _idleTriggerEnabled;
     private int _idleTriggerTimeoutMs;
     private string _idleWaveformId = string.Empty;
@@ -39,6 +44,7 @@ public sealed class AppBootstrapper : IDisposable
         : this(
             CreateDefaultTypingSpeedCalculator(),
             CreateDefaultKeyboardListener(),
+            CreateDefaultMouseListener(),
             CreateDefaultBleDeviceManager(),
             CreateDefaultSpeedRuleCoordinator(),
             CreateDefaultSettingsStore())
@@ -51,9 +57,27 @@ public sealed class AppBootstrapper : IDisposable
         BleDeviceManager bleDeviceManager,
         SpeedRuleCoordinator speedRuleCoordinator,
         SettingsStore settingsStore)
+        : this(
+            typingSpeedCalculator,
+            keyboardListener,
+            CreateDefaultMouseListener(),
+            bleDeviceManager,
+            speedRuleCoordinator,
+            settingsStore)
+    {
+    }
+
+    public AppBootstrapper(
+        TypingSpeedCalculator typingSpeedCalculator,
+        IGlobalKeyboardListener keyboardListener,
+        IGlobalMouseListener mouseListener,
+        BleDeviceManager bleDeviceManager,
+        SpeedRuleCoordinator speedRuleCoordinator,
+        SettingsStore settingsStore)
     {
         _typingSpeedCalculator = typingSpeedCalculator ?? throw new ArgumentNullException(nameof(typingSpeedCalculator));
         _keyboardListener = keyboardListener ?? throw new ArgumentNullException(nameof(keyboardListener));
+        _mouseListener = mouseListener ?? throw new ArgumentNullException(nameof(mouseListener));
         _bleDeviceManager = bleDeviceManager ?? throw new ArgumentNullException(nameof(bleDeviceManager));
         _speedRuleCoordinator = speedRuleCoordinator ?? throw new ArgumentNullException(nameof(speedRuleCoordinator));
         _waveformTriggerRouter = new WaveformTriggerRouter(_speedRuleCoordinator);
@@ -72,11 +96,16 @@ public sealed class AppBootstrapper : IDisposable
             settings.SpecificKeyWaveformId);
         _triggerMode = settings.TriggerMode;
         _keypressWaveformId = NormalizeKeypressWaveformId(settings.KeypressWaveformId);
+        _mouseClickPayloadType = settings.MouseClickPayloadType;
+        _mouseClickFixedAStrength = NormalizeMouseClickFixedStrength(settings.MouseClickFixedAStrength);
+        _mouseClickFixedBStrength = NormalizeMouseClickFixedStrength(settings.MouseClickFixedBStrength);
+        _mouseClickFixedDurationMs = NormalizeMouseClickFixedDurationMs(settings.MouseClickFixedDurationMs);
         _idleTriggerEnabled = settings.IdleTriggerEnabled;
         _idleTriggerTimeoutMs = NormalizeIdleTriggerTimeoutMs(settings.IdleTriggerTimeoutMs);
         _idleWaveformId = NormalizeIdleWaveformId(settings.IdleWaveformId);
         AppDiagnostics.WriteInfo("AppBootstrapper.ctor", $"规则归一化完成：rules={_speedRules.Count}, waveforms={_waveforms.Count}");
         _keyboardListener.KeystrokeCaptured += HandleKeystrokeCaptured;
+        _mouseListener.MouseClickCaptured += HandleMouseClickCaptured;
         _bleDeviceManager.StatusChanged += HandleBluetoothStatusChanged;
 
         _snapshotTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -114,6 +143,14 @@ public sealed class AppBootstrapper : IDisposable
 
     public string KeypressWaveformId => _keypressWaveformId;
 
+    public MouseClickTriggerPayloadType MouseClickPayloadType => _mouseClickPayloadType;
+
+    public int MouseClickFixedAStrength => _mouseClickFixedAStrength;
+
+    public int MouseClickFixedBStrength => _mouseClickFixedBStrength;
+
+    public int MouseClickFixedDurationMs => _mouseClickFixedDurationMs;
+
     public IReadOnlyList<SpecificKeyTriggerBinding> SpecificKeyTriggers => _specificKeyTriggers;
 
     public bool IdleTriggerEnabled => _idleTriggerEnabled;
@@ -133,6 +170,7 @@ public sealed class AppBootstrapper : IDisposable
         ThrowIfDisposed();
 
         _keyboardListener.Start();
+        _mouseListener.Start();
         _snapshotTimer.Start();
         IsListening = true;
         PublishSnapshot(DateTimeOffset.Now);
@@ -147,6 +185,7 @@ public sealed class AppBootstrapper : IDisposable
 
         _snapshotTimer.Stop();
         _keyboardListener.Stop();
+        _mouseListener.Stop();
         IsListening = false;
     }
 
@@ -160,8 +199,10 @@ public sealed class AppBootstrapper : IDisposable
         Stop();
         CancelHoldPlayback(stopDevice: true);
         _keyboardListener.KeystrokeCaptured -= HandleKeystrokeCaptured;
+        _mouseListener.MouseClickCaptured -= HandleMouseClickCaptured;
         _bleDeviceManager.StatusChanged -= HandleBluetoothStatusChanged;
         _keyboardListener.Dispose();
+        _mouseListener.Dispose();
         _snapshotTimer.Tick -= HandleSnapshotTimerTick;
         _disposed = true;
     }
@@ -274,6 +315,23 @@ public sealed class AppBootstrapper : IDisposable
         {
             _currentWaveformName = "未触发";
         }
+        ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
+        await SaveSettingsAsync(cancellationToken);
+    }
+
+    public async Task UpdateMouseClickTriggerAsync(
+        MouseClickTriggerPayloadType payloadType,
+        int fixedAStrength,
+        int fixedBStrength,
+        int fixedDurationMs,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        _mouseClickPayloadType = payloadType;
+        _mouseClickFixedAStrength = NormalizeMouseClickFixedStrength(fixedAStrength);
+        _mouseClickFixedBStrength = NormalizeMouseClickFixedStrength(fixedBStrength);
+        _mouseClickFixedDurationMs = NormalizeMouseClickFixedDurationMs(fixedDurationMs);
         ApplyTriggerState(CurrentSnapshot, DateTimeOffset.Now);
         await SaveSettingsAsync(cancellationToken);
     }
@@ -416,6 +474,12 @@ public sealed class AppBootstrapper : IDisposable
         PublishSnapshot(e.Timestamp);
     }
 
+    private void HandleMouseClickCaptured(object? sender, MouseClickCapturedEventArgs e)
+    {
+        DispatchMouseClickWaveformIfNeeded(e);
+        PublishSnapshot(e.Timestamp);
+    }
+
     private void HandleBluetoothStatusChanged(BluetoothConnectionStatus status)
     {
         if (BluetoothStatusUpdated is null)
@@ -453,6 +517,10 @@ public sealed class AppBootstrapper : IDisposable
         if (_triggerMode == WaveformTriggerMode.AnyKeypress)
         {
             ApplyAnyKeypressModeState();
+        }
+        else if (_triggerMode == WaveformTriggerMode.MouseClick)
+        {
+            ApplyMouseClickModeState();
         }
         else if (_triggerMode == WaveformTriggerMode.HoldKeypress)
         {
@@ -494,6 +562,56 @@ public sealed class AppBootstrapper : IDisposable
         }
 
         _currentWaveformName = waveform.Name;
+        if (!_bleDeviceManager.CurrentStatus.IsConnected)
+        {
+            return;
+        }
+
+        _ = _bleDeviceManager.PlayWaveformAsync(waveform);
+    }
+
+    private void DispatchMouseClickWaveformIfNeeded(MouseClickCapturedEventArgs mouseClick)
+    {
+        // 鼠标点击只触发输出，不计入键速，也不重置“未输入”计时。
+        if (_triggerMode != WaveformTriggerMode.MouseClick)
+        {
+            return;
+        }
+
+        if (_mouseClickPayloadType == MouseClickTriggerPayloadType.FixedStrength)
+        {
+            DispatchMouseClickFixedStrength();
+            return;
+        }
+
+        var evaluation = _waveformTriggerRouter.EvaluateMouseClick(_triggerMode, _keypressWaveformId);
+        if (!evaluation.ShouldDispatch || string.IsNullOrWhiteSpace(evaluation.WaveformId))
+        {
+            return;
+        }
+
+        var waveform = ResolveWaveformById(evaluation.WaveformId);
+        if (waveform is null)
+        {
+            return;
+        }
+
+        _currentRuleName = "鼠标点击触发";
+        _currentWaveformName = waveform.Name;
+        if (!_bleDeviceManager.CurrentStatus.IsConnected)
+        {
+            return;
+        }
+
+        _ = _bleDeviceManager.PlayWaveformAsync(waveform);
+    }
+
+    private void DispatchMouseClickFixedStrength()
+    {
+        var waveform = BuildMouseClickFixedStrengthWaveform();
+
+        _currentRuleName = "鼠标点击触发";
+        _currentWaveformName = $"固定强度 A{_mouseClickFixedAStrength}/B{_mouseClickFixedBStrength}";
         if (!_bleDeviceManager.CurrentStatus.IsConnected)
         {
             return;
@@ -545,6 +663,14 @@ public sealed class AppBootstrapper : IDisposable
     {
         _currentRuleName = "按键即触发";
         _currentWaveformName = ResolveWaveformById(_keypressWaveformId)?.Name ?? "未触发";
+    }
+
+    private void ApplyMouseClickModeState()
+    {
+        _currentRuleName = "鼠标点击触发";
+        _currentWaveformName = _mouseClickPayloadType == MouseClickTriggerPayloadType.FixedStrength
+            ? $"固定强度 A{_mouseClickFixedAStrength}/B{_mouseClickFixedBStrength}"
+            : ResolveWaveformById(_keypressWaveformId)?.Name ?? "未触发";
     }
 
     private void ApplyHoldKeypressModeState()
@@ -710,6 +836,10 @@ public sealed class AppBootstrapper : IDisposable
         {
             TriggerMode = _triggerMode,
             KeypressWaveformId = NormalizeKeypressWaveformId(_keypressWaveformId),
+            MouseClickPayloadType = _mouseClickPayloadType,
+            MouseClickFixedAStrength = NormalizeMouseClickFixedStrength(_mouseClickFixedAStrength),
+            MouseClickFixedBStrength = NormalizeMouseClickFixedStrength(_mouseClickFixedBStrength),
+            MouseClickFixedDurationMs = NormalizeMouseClickFixedDurationMs(_mouseClickFixedDurationMs),
             SpecificKeyVirtualKey = 0,
             SpecificKeyWaveformId = string.Empty,
             SpecificKeyTriggers = _specificKeyTriggers.ToList(),
@@ -727,6 +857,24 @@ public sealed class AppBootstrapper : IDisposable
         return waveform ?? _waveforms.FirstOrDefault();
     }
 
+    private EmsWaveformDefinition BuildMouseClickFixedStrengthWaveform()
+    {
+        return new EmsWaveformDefinition
+        {
+            Id = "mouse-click-fixed-strength",
+            Name = "鼠标点击固定强度",
+            Steps =
+            [
+                new EmsWaveformStep
+                {
+                    DurationMs = _mouseClickFixedDurationMs,
+                    AStrength = _mouseClickFixedAStrength,
+                    BStrength = _mouseClickFixedBStrength
+                }
+            ]
+        };
+    }
+
     private static TimeSpan ResolveHoldPlaybackDelay(EmsWaveformDefinition waveform)
     {
         var totalStepDurationMs = waveform.Steps.Sum(static step => Math.Max(1, step.DurationMs));
@@ -740,6 +888,16 @@ public sealed class AppBootstrapper : IDisposable
     private string NormalizeKeypressWaveformId(string? waveformId)
     {
         return ResolveWaveformById(waveformId)?.Id ?? string.Empty;
+    }
+
+    private static int NormalizeMouseClickFixedStrength(int strength)
+    {
+        return EmsWaveformStep.ClampStrength(strength);
+    }
+
+    private static int NormalizeMouseClickFixedDurationMs(int durationMs)
+    {
+        return durationMs > 0 ? durationMs : AppSettings.DefaultMouseClickFixedDurationMs;
     }
 
     private string NormalizeSpecificKeyWaveformId(string? waveformId)
@@ -883,6 +1041,12 @@ public sealed class AppBootstrapper : IDisposable
     {
         AppDiagnostics.WriteInfo("AppBootstrapper.CreateDefaults", "创建 GlobalKeyboardListener。");
         return new GlobalKeyboardListener();
+    }
+
+    private static IGlobalMouseListener CreateDefaultMouseListener()
+    {
+        AppDiagnostics.WriteInfo("AppBootstrapper.CreateDefaults", "创建 GlobalMouseListener。");
+        return new GlobalMouseListener();
     }
 
     private static BleDeviceManager CreateDefaultBleDeviceManager()

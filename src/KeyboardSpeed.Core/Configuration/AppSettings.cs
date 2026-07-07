@@ -7,11 +7,21 @@ public sealed record AppSettings
 {
     public const int DefaultIdleTriggerTimeoutMs = 2000;
     public const int DefaultRuleRepeatCooldownMs = 600;
+    public const int DefaultMouseClickFixedStrength = 30;
+    public const int DefaultMouseClickFixedDurationMs = 300;
     public const string DefaultIdleReminderWaveformId = "idle-jolt";
 
     public WaveformTriggerMode TriggerMode { get; init; } = WaveformTriggerMode.SpeedRules;
 
     public string KeypressWaveformId { get; init; } = "soft-pulse";
+
+    public MouseClickTriggerPayloadType MouseClickPayloadType { get; init; } = MouseClickTriggerPayloadType.Waveform;
+
+    public int MouseClickFixedAStrength { get; init; } = DefaultMouseClickFixedStrength;
+
+    public int MouseClickFixedBStrength { get; init; } = DefaultMouseClickFixedStrength;
+
+    public int MouseClickFixedDurationMs { get; init; } = DefaultMouseClickFixedDurationMs;
 
     public int SpecificKeyVirtualKey { get; init; }
 
@@ -35,6 +45,10 @@ public sealed record AppSettings
         {
             TriggerMode = WaveformTriggerMode.SpeedRules,
             KeypressWaveformId = "soft-pulse",
+            MouseClickPayloadType = MouseClickTriggerPayloadType.Waveform,
+            MouseClickFixedAStrength = DefaultMouseClickFixedStrength,
+            MouseClickFixedBStrength = DefaultMouseClickFixedStrength,
+            MouseClickFixedDurationMs = DefaultMouseClickFixedDurationMs,
             SpecificKeyVirtualKey = 0,
             SpecificKeyWaveformId = "soft-pulse",
             SpecificKeyTriggers = [],

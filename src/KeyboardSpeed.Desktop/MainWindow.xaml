@@ -867,12 +867,51 @@
                                                 CornerRadius="18"
                                                 Padding="16">
                                             <StackPanel>
-                                                <TextBlock Style="{StaticResource CaptionStyle}"
+                                                <StackPanel x:Name="MouseClickPayloadPanel">
+                                                    <TextBlock Style="{StaticResource CaptionStyle}"
+                                                               Text="点击动作" />
+                                                    <ComboBox x:Name="MouseClickPayloadComboBox"
+                                                              Margin="0,8,0,0"
+                                                              SelectionChanged="OnMouseClickPayloadSelectionChanged"
+                                                              DisplayMemberPath="Name" />
+                                                </StackPanel>
+
+                                                <TextBlock x:Name="KeypressWaveformLabel"
+                                                           Margin="0,16,0,0"
+                                                           Style="{StaticResource CaptionStyle}"
                                                            Text="按键波形" />
                                                 <ComboBox x:Name="KeypressWaveformComboBox"
                                                           Margin="0,8,0,0"
                                                           SelectionChanged="OnKeypressWaveformSelectionChanged"
                                                           DisplayMemberPath="Name" />
+
+                                                <StackPanel x:Name="MouseClickFixedStrengthPanel"
+                                                            Margin="0,16,0,0">
+                                                    <TextBlock Style="{StaticResource CaptionStyle}"
+                                                               Text="固定强度" />
+                                                    <UniformGrid Margin="0,8,0,0"
+                                                                 Columns="2">
+                                                        <TextBox x:Name="MouseClickFixedAStrengthTextBox"
+                                                                 Margin="0,0,8,0"
+                                                                 Height="42"
+                                                                 LostFocus="OnMouseClickFixedSettingLostFocus"
+                                                                 KeyDown="OnMouseClickFixedSettingKeyDown" />
+                                                        <TextBox x:Name="MouseClickFixedBStrengthTextBox"
+                                                                 Margin="8,0,0,0"
+                                                                 Height="42"
+                                                                 LostFocus="OnMouseClickFixedSettingLostFocus"
+                                                                 KeyDown="OnMouseClickFixedSettingKeyDown" />
+                                                    </UniformGrid>
+
+                                                    <TextBlock Margin="0,16,0,0"
+                                                               Style="{StaticResource CaptionStyle}"
+                                                               Text="持续时间（毫秒）" />
+                                                    <TextBox x:Name="MouseClickFixedDurationTextBox"
+                                                             Margin="0,8,0,0"
+                                                             Height="42"
+                                                             LostFocus="OnMouseClickFixedSettingLostFocus"
+                                                             KeyDown="OnMouseClickFixedSettingKeyDown" />
+                                                </StackPanel>
                                             </StackPanel>
                                         </Border>
 

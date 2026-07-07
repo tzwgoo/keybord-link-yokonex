@@ -106,4 +106,31 @@ public sealed class WaveformTriggerRouterTests
         Assert.False(result.ShouldDispatch);
         Assert.Null(result.WaveformId);
     }
+
+    [Fact]
+    public void EvaluateMouseClick_ShouldDispatchConfiguredWaveformInMouseClickMode()
+    {
+        var router = new WaveformTriggerRouter(new SpeedRuleCoordinator(new SpeedRuleEngine()));
+
+        var result = router.EvaluateMouseClick(
+            WaveformTriggerMode.MouseClick,
+            mouseClickWaveformId: "soft-pulse");
+
+        Assert.True(result.ShouldDispatch);
+        Assert.Equal("soft-pulse", result.WaveformId);
+        Assert.False(result.ShouldStop);
+    }
+
+    [Fact]
+    public void EvaluateMouseClick_ShouldNotDispatchWhenOtherModeIsActive()
+    {
+        var router = new WaveformTriggerRouter(new SpeedRuleCoordinator(new SpeedRuleEngine()));
+
+        var result = router.EvaluateMouseClick(
+            WaveformTriggerMode.AnyKeypress,
+            mouseClickWaveformId: "soft-pulse");
+
+        Assert.False(result.ShouldDispatch);
+        Assert.Null(result.WaveformId);
+    }
 }

@@ -23,6 +23,10 @@ public sealed class SettingsStoreTests : IDisposable
         {
             TriggerMode = WaveformTriggerMode.AnyKeypress,
             KeypressWaveformId = "soft-pulse",
+            MouseClickPayloadType = MouseClickTriggerPayloadType.FixedStrength,
+            MouseClickFixedAStrength = 44,
+            MouseClickFixedBStrength = 39,
+            MouseClickFixedDurationMs = 360,
             SpecificKeyVirtualKey = 0x11,
             SpecificKeyWaveformId = "wave-cascade",
             SpecificKeyTriggers =
@@ -83,6 +87,10 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Single(loaded.Waveforms);
         Assert.Equal(WaveformTriggerMode.AnyKeypress, loaded.TriggerMode);
         Assert.Equal("soft-pulse", loaded.KeypressWaveformId);
+        Assert.Equal(MouseClickTriggerPayloadType.FixedStrength, loaded.MouseClickPayloadType);
+        Assert.Equal(44, loaded.MouseClickFixedAStrength);
+        Assert.Equal(39, loaded.MouseClickFixedBStrength);
+        Assert.Equal(360, loaded.MouseClickFixedDurationMs);
         Assert.Equal(0x11, loaded.SpecificKeyVirtualKey);
         Assert.Equal("wave-cascade", loaded.SpecificKeyWaveformId);
         Assert.Equal(2, loaded.SpecificKeyTriggers.Count);

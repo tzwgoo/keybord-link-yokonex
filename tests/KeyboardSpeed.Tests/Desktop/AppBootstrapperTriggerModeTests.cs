@@ -54,6 +54,86 @@ public sealed class AppBootstrapperTriggerModeTests : IDisposable
     }
 
     [Fact]
+    public async Task MouseClickMode_ShouldDispatchWaveformForEachCapturedMouseClick()
+    {
+        var settingsPath = Path.Combine(_directoryPath, "mouse-click-trigger-mode-settings.json");
+        var settingsStore = new SettingsStore(settingsPath);
+        await settingsStore.SaveAsync(new AppSettings
+        {
+            TriggerMode = WaveformTriggerMode.MouseClick,
+            KeypressWaveformId = "soft-pulse"
+        }, CancellationToken.None);
+
+        var keyboardListener = new FakeKeyboardListener();
+        var mouseListener = new FakeMouseListener();
+        var bridge = new FakeWindowsBlePlatformBridge();
+        var deviceManager = new BleDeviceManager(bridge);
+        using var bootstrapper = new AppBootstrapper(
+            new TypingSpeedCalculator(new TypingSpeedOptions()),
+            keyboardListener,
+            mouseListener,
+            deviceManager,
+            new SpeedRuleCoordinator(new SpeedRuleEngine()),
+            settingsStore);
+
+        await bootstrapper.ScanBluetoothAsync(CancellationToken.None);
+        await bootstrapper.ConnectBluetoothAsync(bridge.Device.DeviceId, CancellationToken.None);
+
+        keyboardListener.RaiseKeystroke(new KeystrokeCapturedEventArgs(DateTimeOffset.Now, virtualKey: 65));
+        Assert.Empty(deviceManager.PacketHistory);
+
+        mouseListener.RaiseMouseClick(new MouseClickCapturedEventArgs(DateTimeOffset.Now.AddMilliseconds(20), MouseClickButton.Left, 100, 200));
+        Assert.True(SpinWait.SpinUntil(() => deviceManager.PacketHistory.Count > 0, 1000));
+        var firstPacketCount = deviceManager.PacketHistory.Count;
+
+        mouseListener.RaiseMouseClick(new MouseClickCapturedEventArgs(DateTimeOffset.Now.AddMilliseconds(40), MouseClickButton.Right, 120, 220));
+        Assert.True(SpinWait.SpinUntil(() => deviceManager.PacketHistory.Count > firstPacketCount, 1000));
+        Assert.Equal("鼠标点击触发", bootstrapper.CurrentRuleName);
+        Assert.Equal("柔和脉冲", bootstrapper.CurrentWaveformName);
+    }
+
+    [Fact]
+    public async Task MouseClickMode_ShouldDispatchFixedStrengthWhenConfigured()
+    {
+        var settingsPath = Path.Combine(_directoryPath, "mouse-click-fixed-strength-settings.json");
+        var settingsStore = new SettingsStore(settingsPath);
+        await settingsStore.SaveAsync(new AppSettings
+        {
+            TriggerMode = WaveformTriggerMode.MouseClick,
+            MouseClickPayloadType = MouseClickTriggerPayloadType.FixedStrength,
+            MouseClickFixedAStrength = 31,
+            MouseClickFixedBStrength = 27,
+            MouseClickFixedDurationMs = 2000
+        }, CancellationToken.None);
+
+        var mouseListener = new FakeMouseListener();
+        var bridge = new FakeWindowsBlePlatformBridge();
+        var deviceManager = new BleDeviceManager(bridge);
+        using var bootstrapper = new AppBootstrapper(
+            new TypingSpeedCalculator(new TypingSpeedOptions()),
+            new FakeKeyboardListener(),
+            mouseListener,
+            deviceManager,
+            new SpeedRuleCoordinator(new SpeedRuleEngine()),
+            settingsStore);
+
+        await bootstrapper.ScanBluetoothAsync(CancellationToken.None);
+        await bootstrapper.ConnectBluetoothAsync(bridge.Device.DeviceId, CancellationToken.None);
+
+        mouseListener.RaiseMouseClick(new MouseClickCapturedEventArgs(DateTimeOffset.Now, MouseClickButton.Left, 100, 200));
+
+        Assert.True(SpinWait.SpinUntil(() => deviceManager.PacketHistory.Count > 0, 1000));
+        var packet = deviceManager.PacketHistory[0];
+        Assert.Equal(0x35, packet[0]);
+        Assert.Equal(0x11, packet[1]);
+        Assert.Equal(0x01, packet[2]);
+        Assert.Equal(31, packet[4]);
+        Assert.Equal(27, packet[7]);
+        Assert.Equal("鼠标点击触发", bootstrapper.CurrentRuleName);
+        Assert.Equal("固定强度 A31/B27", bootstrapper.CurrentWaveformName);
+    }
+
+    [Fact]
     public async Task SpecificKeypressMode_ShouldOnlyDispatchWhenConfiguredKeyIsPressed()
     {
         var settingsPath = Path.Combine(_directoryPath, "specific-key-trigger-mode-settings.json");
@@ -366,6 +446,28 @@ public sealed class AppBootstrapperTriggerModeTests : IDisposable
         public void RaiseKeystroke(KeystrokeCapturedEventArgs args)
         {
             KeystrokeCaptured?.Invoke(this, args);
+        }
+    }
+
+    private sealed class FakeMouseListener : IGlobalMouseListener
+    {
+        public event EventHandler<MouseClickCapturedEventArgs>? MouseClickCaptured;
+
+        public void Start()
+        {
+        }
+
+        public void Stop()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+
+        public void RaiseMouseClick(MouseClickCapturedEventArgs args)
+        {
+            MouseClickCaptured?.Invoke(this, args);
         }
     }
 
